@@ -15,8 +15,9 @@ import {
   Power,
   GraduationCap,
   X,
+  ChevronRight,
 } from "lucide-react";
-import { faculty } from "../data/mockData";
+import { useFaculty } from "../context/useFaculty";
 import { Avatar } from "./ui";
 
 /* Nav is grouped so the long list scans faster; routes are unchanged. */
@@ -87,6 +88,7 @@ function NavItem({ to, label, icon: Icon, end, onClick }) {
 }
 
 export default function Sidebar({ open, onClose }) {
+  const { profile: faculty, photo } = useFaculty();
   // Close the drawer with Escape and keep the page from scrolling behind it.
   useEffect(() => {
     if (!open) return;
@@ -134,15 +136,30 @@ export default function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        {/* profile */}
-        <div className="mx-4 mb-3 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 p-3.5 flex items-center gap-3">
-          <Avatar src="https://i.pravatar.cc/120?img=47" name={faculty.name} size={44} ring />
-          <div className="min-w-0">
+        {/* profile card — links to /profile, like the nav item below */}
+        <NavLink
+          to="/profile"
+          onClick={onClose}
+          title="View my profile"
+          className={({ isActive }) =>
+            `group mx-4 mb-3 rounded-2xl ring-1 p-3.5 flex items-center gap-3 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+              isActive
+                ? "bg-white/[0.14] ring-white/20"
+                : "bg-white/[0.06] ring-white/10 hover:bg-white/[0.1] hover:ring-white/20"
+            }`
+          }
+        >
+          <Avatar key={photo} src={photo} name={faculty.name} size={44} ring />
+          <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm truncate">{faculty.name}</p>
             <p className="text-[11px] text-white/60 truncate">{faculty.role}</p>
             <p className="text-[11px] text-white/45 truncate">{faculty.department}</p>
           </div>
-        </div>
+          <ChevronRight
+            size={16}
+            className="shrink-0 text-white/30 transition-all group-hover:text-white/70 group-hover:translate-x-0.5"
+          />
+        </NavLink>
 
         {/* navigation */}
         <nav className="flex-1 overflow-y-auto scrollbar-dark px-3 pb-3 space-y-4">

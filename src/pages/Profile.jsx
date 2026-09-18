@@ -221,7 +221,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { PageHeader, Card, Badge, Notice, Tabs, inputClass, labelClass, PrimaryButton, SecondaryButton, OutlineButton, Avatar } from "../components/ui";
-import { faculty as seedFaculty, courses } from "../data/mockData";
+import { courses } from "../data/mockData";
+import { useFaculty } from "../context/useFaculty";
 
 const TABS = ["Overview", "Personal Information", "Academic Information", "Preferences", "Security"];
 
@@ -257,9 +258,10 @@ function Field({ name, labelText, type = "text", value, onChange, disabled, erro
 }
 
 export default function Profile() {
-  const [profile, setProfile] = useState(() => ({ ...seedFaculty }));
-  const [form, setForm] = useState(() => ({ ...seedFaculty }));
-  const [photo, setPhoto] = useState("https://i.pravatar.cc/160?img=47");
+  // Profile + photo live in FacultyContext so the topbar, sidebar and
+  // dashboard stay in sync with whatever is saved here.
+  const { profile, photo, updateProfile: setProfile, updatePhoto: setPhoto } = useFaculty();
+  const [form, setForm] = useState(() => ({ ...profile }));
   const [tab, setTab] = useState(TABS[0]);
   const [editing, setEditing] = useState(false);
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);

@@ -193,8 +193,8 @@ import {
   courses,
   announcements as seedAnnouncements,
   pendingAssignments,
-  faculty,
 } from "../data/mockData";
+import { useFaculty } from "../context/useFaculty";
 
 /* ------------------------------------------------------------------
    Schedule data built around today's date so the calendar, the
@@ -334,6 +334,7 @@ function WeekCalendar({ selected, onSelect, now, eventsByDay }) {
 /* ---------------- page ---------------- */
 
 export default function Dashboard() {
+  const { profile: faculty, photo } = useFaculty();
   const [now, setNow] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [announcements, setAnnouncements] = useState(() =>
@@ -644,7 +645,7 @@ export default function Dashboard() {
             }
           />
           <Link to="/profile" className="flex items-center gap-3">
-            <Avatar src="https://i.pravatar.cc/100?img=47" name={faculty.name} size={56} ring />
+            <Avatar key={photo} src={photo} name={faculty.name} size={56} ring />
             <div>
               <p className="text-sm font-semibold text-brand-700">{faculty.name}</p>
               <p className="text-xs text-gray-500">{faculty.role}</p>

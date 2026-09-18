@@ -1,9 +1,12 @@
+import facultyAvatar from "../assets/faculty-avatar.jpg";
+
 export const faculty = {
-  name: "Dr. Padmavathi S",
+  name: "ReenaPoongavanam",
+  avatar: facultyAvatar,
   role: "Faculty",
   department: "Nursing Department",
   college: "G Care Nursing College",
-  email: "padmavathi.s@gcarecouncil.edu.in",
+  email: "keerthana26@gmail.com",
   phone: "+91 98765 43210",
   location: "Chennai, Tamil Nadu, India",
   employeeId: "GCN/FAC/2023/015",
