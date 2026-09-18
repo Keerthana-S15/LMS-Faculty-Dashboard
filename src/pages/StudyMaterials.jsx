@@ -38,7 +38,7 @@
 //         action={<PrimaryButton icon={Upload}>Upload Material</PrimaryButton>}
 //       />
 
-//       <div className="flex flex-wrap gap-4 mb-6">
+//       <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
 //         <StatCard icon={Folder} label="Total Materials" value={counts.total} tint="purple" />
 //         <StatCard icon={FileText} label="Documents" value={counts.documents} tint="blue" />
 //         <StatCard icon={PlayCircle} label="Videos" value={counts.videos} tint="green" />
@@ -68,21 +68,21 @@
 //       <Card className="overflow-x-auto">
 //         <table className="w-full text-sm">
 //           <thead>
-//             <tr className="text-left text-gray-500 border-b border-gray-100">
-//               <th className="font-medium py-3 px-5">Title</th>
-//               <th className="font-medium py-3 px-5">Course</th>
-//               <th className="font-medium py-3 px-5">Topic</th>
-//               <th className="font-medium py-3 px-5">Type</th>
-//               <th className="font-medium py-3 px-5">Uploaded On</th>
-//               <th className="font-medium py-3 px-5">Actions</th>
+//             <tr className={tableHeadRowClass}>
+//               <th className={tableHeadCellClass}>Title</th>
+//               <th className={tableHeadCellClass}>Course</th>
+//               <th className={tableHeadCellClass}>Topic</th>
+//               <th className={tableHeadCellClass}>Type</th>
+//               <th className={tableHeadCellClass}>Uploaded On</th>
+//               <th className={tableHeadCellClass}>Actions</th>
 //             </tr>
 //           </thead>
 //           <tbody className="divide-y divide-gray-100">
 //             {filtered.map((m) => {
 //               const { icon: Icon, tint } = typeIcon[m.type];
 //               return (
-//                 <tr key={m.id} className="hover:bg-gray-50">
-//                   <td className="py-3 px-5">
+//                 <tr key={m.id} className={tableRowClass}>
+//                   <td className="py-3.5 px-5">
 //                     <div className="flex items-center gap-3">
 //                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${tint}`}>
 //                         <Icon size={16} />
@@ -93,22 +93,22 @@
 //                       </div>
 //                     </div>
 //                   </td>
-//                   <td className="py-3 px-5 text-gray-600">
+//                   <td className="py-3.5 px-5 text-gray-600">
 //                     <p>{m.course}</p>
 //                     <p className="text-xs text-gray-400">{m.meta}</p>
 //                   </td>
-//                   <td className="py-3 px-5 text-gray-600">{m.topic}</td>
-//                   <td className="py-3 px-5">
+//                   <td className="py-3.5 px-5 text-gray-600">{m.topic}</td>
+//                   <td className="py-3.5 px-5">
 //                     <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${typeBadge[m.type]}`}>
 //                       {m.type}
 //                     </span>
 //                   </td>
-//                   <td className="py-3 px-5 text-gray-500 whitespace-nowrap">{m.uploaded}</td>
-//                   <td className="py-3 px-5">
+//                   <td className="py-3.5 px-5 text-gray-500 whitespace-nowrap">{m.uploaded}</td>
+//                   <td className="py-3.5 px-5">
 //                     <div className="flex items-center gap-1 text-gray-400">
-//                       <button className="p-1.5 hover:text-brand-600"><Eye size={16} /></button>
-//                       <button className="p-1.5 hover:text-brand-600"><Download size={15} /></button>
-//                       <button className="p-1.5 hover:text-gray-600"><MoreVertical size={16} /></button>
+//                       <button className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors"><Eye size={16} /></button>
+//                       <button className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors"><Download size={15} /></button>
+//                       <button className="p-1.5 rounded-lg hover:text-gray-700 hover:bg-gray-100 transition-colors"><MoreVertical size={16} /></button>
 //                     </div>
 //                   </td>
 //                 </tr>
@@ -145,7 +145,7 @@ import {
   UploadCloud,
   ExternalLink,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, StatCard, Card } from "../components/ui";
+import { PageHeader, PrimaryButton, SearchInput, Select, StatCard, Card, Notice, EmptyState, SecondaryButton, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass, StatButton } from "../components/ui";
 import { materials as seedMaterials } from "../data/mockData";
 
 const COURSES = [
@@ -274,21 +274,20 @@ function UploadModal({ initial, onClose, onSave }) {
     onClose();
   }
 
-  const field =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400";
-  const label = "block text-sm text-gray-600 mb-1.5";
+  const field = inputClass;
+  const label = labelClass;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">
             {isEdit ? "Edit material" : "Upload material"}
           </h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -321,7 +320,7 @@ function UploadModal({ initial, onClose, onSave }) {
             <div>
               <label className={label}>Link URL</label>
               <input className={field} value={form.url} onChange={set("url")} placeholder="https://www.who.int/..." />
-              {errors.url && <p className="text-xs text-rose-600 mt-1">{errors.url}</p>}
+              {errors.url && <p className="text-xs text-rose-600 mt-1.5">{errors.url}</p>}
             </div>
           ) : (
             <div>
@@ -360,14 +359,14 @@ function UploadModal({ initial, onClose, onSave }) {
                 className="hidden"
                 onChange={(e) => takeFile(e.target.files?.[0])}
               />
-              {errors.file && <p className="text-xs text-rose-600 mt-1">{errors.file}</p>}
+              {errors.file && <p className="text-xs text-rose-600 mt-1.5">{errors.file}</p>}
             </div>
           )}
 
           <div>
             <label className={label}>Title</label>
             <input className={field} value={form.title} onChange={set("title")} placeholder="Anatomy - Unit 1 Notes" />
-            {errors.title && <p className="text-xs text-rose-600 mt-1">{errors.title}</p>}
+            {errors.title && <p className="text-xs text-rose-600 mt-1.5">{errors.title}</p>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -391,16 +390,16 @@ function UploadModal({ initial, onClose, onSave }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors text-white text-sm font-medium"
           >
             {isEdit ? "Save changes" : "Upload material"}
           </button>
@@ -416,9 +415,9 @@ function PreviewModal({ item, onClose }) {
   const { icon: Icon, tint } = typeIcon[item.type];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
@@ -433,7 +432,7 @@ function PreviewModal({ item, onClose }) {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -494,26 +493,26 @@ function RowMenu({ item, onEdit, onCopyLink, onDelete }) {
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((v) => !v)} className="p-1.5 hover:text-gray-600" aria-label="More actions">
+      <button onClick={() => setOpen((v) => !v)} className="p-1.5 rounded-lg hover:text-gray-700 hover:bg-gray-100 transition-colors" aria-label="More actions">
         <MoreVertical size={16} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm z-20">
+        <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
           <button
             onClick={() => { setOpen(false); onEdit(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Pencil size={14} /> Edit details
           </button>
           <button
             onClick={() => { setOpen(false); onCopyLink(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Copy size={14} /> Copy link
           </button>
           <button
             onClick={() => { setOpen(false); onDelete(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-rose-50 text-rose-600"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition-colors"
           >
             <Trash2 size={14} /> Delete
           </button>
@@ -619,7 +618,7 @@ export default function StudyMaterials() {
   }
 
   const SortHeader = ({ label, sortKey }) => (
-    <th className="font-medium py-3 px-5">
+    <th className={tableHeadCellClass}>
       <button
         onClick={() =>
           setSort((s) =>
@@ -628,7 +627,7 @@ export default function StudyMaterials() {
               : { key: sortKey, dir: "asc" }
           )
         }
-        className={`inline-flex items-center gap-1 hover:text-gray-700 ${
+        className={`inline-flex items-center gap-1 rounded-md uppercase tracking-wider transition-colors hover:text-gray-800 ${
           sort.key === sortKey ? "text-brand-600" : ""
         }`}
       >
@@ -638,15 +637,10 @@ export default function StudyMaterials() {
     </th>
   );
 
-  const statCard = (key, node) => (
-    <button
-      onClick={() => setType(key)}
-      className={`flex-1 min-w-[150px] text-left rounded-2xl ${
-        type === key ? "ring-2 ring-brand-400 rounded-2xl" : ""
-      }`}
-    >
-      {node}
-    </button>
+  const statCard = (key, icon, label, value, tint) => (
+    <StatButton onClick={() => setType(key)} active={type === key}>
+      <StatCard icon={icon} label={label} value={value} tint={tint} interactive active={type === key} />
+    </StatButton>
   );
 
   return (
@@ -662,12 +656,12 @@ export default function StudyMaterials() {
         }
       />
 
-      <div className="flex flex-wrap gap-4 mb-6">
-        {statCard("all", <StatCard icon={Folder} label="Total Materials" value={counts.total} tint="purple" />)}
-        {statCard("Document", <StatCard icon={FileText} label="Documents" value={counts.documents} tint="blue" />)}
-        {statCard("Video", <StatCard icon={PlayCircle} label="Videos" value={counts.videos} tint="green" />)}
-        {statCard("Audio", <StatCard icon={Headphones} label="Audios" value={counts.audios} tint="orange" />)}
-        {statCard("Link", <StatCard icon={Link2} label="Links" value={counts.links} tint="red" />)}
+      <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
+        {statCard("all", Folder, "Total Materials", counts.total, "purple")}
+        {statCard("Document", FileText, "Documents", counts.documents, "blue")}
+        {statCard("Video", PlayCircle, "Videos", counts.videos, "green")}
+        {statCard("Audio", Headphones, "Audios", counts.audios, "orange")}
+        {statCard("Link", Link2, "Links", counts.links, "red")}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -692,61 +686,57 @@ export default function StudyMaterials() {
         </Select>
       </div>
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-100">
+            <tr className={tableHeadRowClass}>
               <SortHeader label="Title" sortKey="title" />
               <SortHeader label="Course" sortKey="course" />
               <SortHeader label="Topic" sortKey="topic" />
               <SortHeader label="Type" sortKey="type" />
               <SortHeader label="Uploaded On" sortKey="uploadedAt" />
-              <th className="font-medium py-3 px-5">Actions</th>
+              <th className={tableHeadCellClass}>Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {visible.map((m) => {
               const { icon: Icon, tint } = typeIcon[m.type];
               return (
-                <tr key={m.id} className="hover:bg-gray-50">
-                  <td className="py-3 px-5">
+                <tr key={m.id} className={tableRowClass}>
+                  <td className="py-3.5 px-5">
                     <button onClick={() => setPreview(m)} className="flex items-center gap-3 text-left">
                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${tint}`}>
                         <Icon size={16} />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 hover:text-brand-600">{m.title}</p>
+                        <p className="font-medium text-gray-900 hover:text-brand-600 transition-colors">{m.title}</p>
                         <p className="text-xs text-gray-400">
                           {m.sizeLabel !== "-" ? m.sizeLabel : m.ext}
                         </p>
                       </div>
                     </button>
                   </td>
-                  <td className="py-3 px-5 text-gray-600">
+                  <td className="py-3.5 px-5 text-gray-600">
                     <p>{m.course}</p>
                     <p className="text-xs text-gray-400">{m.meta}</p>
                   </td>
-                  <td className="py-3 px-5 text-gray-600">{m.topic || "—"}</td>
-                  <td className="py-3 px-5">
+                  <td className="py-3.5 px-5 text-gray-600">{m.topic || "—"}</td>
+                  <td className="py-3.5 px-5">
                     <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${typeBadge[m.type]}`}>
                       {m.type}
                     </span>
                   </td>
-                  <td className="py-3 px-5 text-gray-500 whitespace-nowrap">{fmtStamp(m.uploadedAt)}</td>
-                  <td className="py-3 px-5">
+                  <td className="py-3.5 px-5 text-gray-500 whitespace-nowrap">{fmtStamp(m.uploadedAt)}</td>
+                  <td className="py-3.5 px-5">
                     <div className="flex items-center gap-1 text-gray-400">
-                      <button onClick={() => setPreview(m)} className="p-1.5 hover:text-brand-600" title="Preview">
+                      <button onClick={() => setPreview(m)} className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors" title="Preview">
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => handleDownload(m)}
-                        className="p-1.5 hover:text-brand-600"
+                        className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors"
                         title={m.type === "Link" ? "Open link" : "Download"}
                       >
                         <Download size={15} />
@@ -770,34 +760,20 @@ export default function StudyMaterials() {
         </table>
 
         {visible.length === 0 && (
-          <div className="p-12 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mx-auto mb-3">
-              {items.length === 0 ? <Folder size={24} /> : <SearchX size={24} />}
-            </div>
-            <p className="text-sm font-medium text-gray-800">
-              {items.length === 0 ? "No materials yet" : "No materials match your filters"}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {items.length === 0
+          <EmptyState
+            icon={items.length === 0 ? <Folder size={24} /> : <SearchX size={24} />}
+            title={items.length === 0 ? "No materials yet" : "No materials match your filters"}
+            description={
+              items.length === 0
                 ? "Upload notes, slides, recordings or links for your students."
-                : "Try a different search term, course, topic or type."}
-            </p>
-            {items.length === 0 ? (
-              <button
-                onClick={() => setEditing({})}
-                className="mt-4 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl"
-              >
-                <Upload size={15} /> Upload Material
-              </button>
-            ) : (
-              <button
-                onClick={() => { setQuery(""); setCourse("all"); setTopic("all"); setType("all"); }}
-                className="mt-4 text-sm font-medium text-brand-600 hover:underline"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
+                : "Try a different search term, course, topic or type."
+            }
+            action={
+              items.length === 0
+                ? (<PrimaryButton icon={Upload} onClick={() => setEditing({})}>Upload Material</PrimaryButton>)
+                : (<SecondaryButton onClick={() => { setQuery(""); setCourse("all"); setTopic("all"); setType("all"); }}>Clear filters</SecondaryButton>)
+            }
+          />
         )}
       </Card>
 

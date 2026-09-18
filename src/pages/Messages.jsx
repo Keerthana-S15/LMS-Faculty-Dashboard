@@ -28,7 +28,7 @@
 //         action={<PrimaryButton icon={Edit3}>New Message</PrimaryButton>}
 //       />
 
-//       <div className="flex flex-wrap gap-4 mb-6">
+//       <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
 //         <StatCard icon={MessageSquare} label="Total Conversations" value={messageStats.totalConversations} sub="Active chats" tint="purple" />
 //         <StatCard icon={Mail} label="Unread Messages" value={messageStats.unreadMessages} sub="New messages" tint="green" />
 //         <StatCard icon={Users2} label="Groups" value={messageStats.groups} sub="Active groups" tint="orange" />
@@ -116,8 +116,8 @@
 //               </div>
 //             </div>
 //             <div className="flex items-center gap-1 text-gray-400">
-//               <button className="p-2 hover:text-brand-600"><Phone size={16} /></button>
-//               <button className="p-2 hover:text-brand-600"><Video size={16} /></button>
+//               <button className="p-2 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors"><Phone size={16} /></button>
+//               <button className="p-2 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors"><Video size={16} /></button>
 //               <button className="p-2 hover:text-gray-600"><MoreVertical size={16} /></button>
 //             </div>
 //           </div>
@@ -149,7 +149,7 @@
 //           </div>
 
 //           <div className="p-4 border-t border-gray-100 flex items-center gap-2">
-//             <button className="p-2 text-gray-400 hover:text-brand-600">
+//             <button className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors">
 //               <Paperclip size={18} />
 //             </button>
 //             <input
@@ -234,7 +234,7 @@ import {
   ArrowLeft,
   SearchX,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, StatCard, Card } from "../components/ui";
+import { PageHeader, PrimaryButton, StatCard, Card, Notice, StatButton, labelClass, inputClass, IconButton } from "../components/ui";
 import { conversations as seedConversations, students as seedStudents } from "../data/mockData";
 
 const FILTERS = ["All", "Unread", "Students", "Faculty", "Groups"];
@@ -292,21 +292,21 @@ function NewMessageModal({ existing, onClose, onCreate }) {
   }, [query]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">New message</h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
 
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
           <div>
-            <label className="block text-sm text-gray-600 mb-1.5">To</label>
+            <label className={labelClass}>To</label>
             {picked ? (
               <div className="flex items-center gap-3 border border-brand-200 bg-brand-50 rounded-xl px-3 py-2.5">
                 <img src={`https://i.pravatar.cc/60?u=${picked.id}`} className="w-8 h-8 rounded-full" alt="" />
@@ -356,7 +356,7 @@ function NewMessageModal({ existing, onClose, onCreate }) {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1.5">Message</label>
+            <label className={labelClass}>Message</label>
             <textarea
               rows={3}
               value={text}
@@ -367,17 +367,17 @@ function NewMessageModal({ existing, onClose, onCreate }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={() => { onCreate(picked, text.trim()); onClose(); }}
             disabled={!picked || !text.trim()}
-            className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white text-sm font-medium"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors disabled:opacity-40 text-white text-sm font-medium"
           >
             Send message
           </button>
@@ -401,15 +401,15 @@ function ChatMenu({ onMarkUnread, onDelete }) {
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((v) => !v)} className="p-2 hover:text-gray-600" aria-label="More actions">
+      <button onClick={() => setOpen((v) => !v)} className="p-2 rounded-lg hover:text-gray-700 hover:bg-gray-100 transition-colors" aria-label="More actions">
         <MoreVertical size={16} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm z-20">
-          <button onClick={() => { setOpen(false); onMarkUnread(); }} className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700">
+        <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
+          <button onClick={() => { setOpen(false); onMarkUnread(); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
             <MailOpen size={14} /> Mark as unread
           </button>
-          <button onClick={() => { setOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-rose-50 text-rose-600">
+          <button onClick={() => { setOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition-colors">
             <Trash2 size={14} /> Delete conversation
           </button>
         </div>
@@ -583,22 +583,18 @@ export default function Messages() {
         }
       />
 
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
         <StatCard icon={MessageSquare} label="Total Conversations" value={stats.total} sub="Active chats" tint="purple" />
-        <button onClick={() => setFilter("Unread")} className="flex-1 min-w-[160px] text-left rounded-2xl">
-          <StatCard icon={Mail} label="Unread Messages" value={stats.unread} sub="New messages" tint="green" />
-        </button>
-        <button onClick={() => setFilter("Groups")} className="flex-1 min-w-[160px] text-left rounded-2xl">
-          <StatCard icon={Users2} label="Groups" value={stats.groups} sub="Active groups" tint="orange" />
-        </button>
+        <StatButton onClick={() => setFilter("Unread")} active={filter === "Unread"}>
+          <StatCard icon={Mail} label="Unread Messages" value={stats.unread} sub="New messages" tint="green" interactive active={filter === "Unread"} />
+        </StatButton>
+        <StatButton onClick={() => setFilter("Groups")} active={filter === "Groups"}>
+          <StatCard icon={Users2} label="Groups" value={stats.groups} sub="Active groups" tint="orange" interactive active={filter === "Groups"} />
+        </StatButton>
         <StatCard icon={Send} label="Sent Messages" value={stats.sent} sub="This month" tint="blue" />
       </div>
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="grid grid-cols-1 md:grid-cols-[320px_1fr] lg:grid-cols-[320px_1fr_260px] overflow-hidden" style={{ minHeight: 540 }}>
         {/* conversation list */}
@@ -610,25 +606,28 @@ export default function Messages() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search conversations..."
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+                aria-label="Search conversations"
+                className={`${inputClass} pl-9 pr-3 py-2`}
               />
             </div>
-            <button
+            <IconButton
+              icon={Filter}
+              label="Clear filters"
               onClick={() => { setSearch(""); setFilter("All"); }}
-              title="Clear filters"
-              className="p-2 border border-gray-200 rounded-lg text-gray-400 hover:text-gray-600"
-            >
-              <Filter size={15} />
-            </button>
+              className="border border-gray-200 bg-white shadow-sm w-auto h-auto p-2.5"
+            />
           </div>
 
-          <div className="flex gap-3 px-4 pt-3 text-xs text-gray-500 overflow-x-auto scrollbar-none">
+          <div className="flex gap-1.5 px-3 py-2.5 border-b border-gray-100 overflow-x-auto scrollbar-none">
             {FILTERS.map((t) => (
               <button
                 key={t}
                 onClick={() => setFilter(t)}
-                className={`pb-2 border-b-2 whitespace-nowrap ${
-                  filter === t ? "border-brand-600 text-brand-600 font-medium" : "border-transparent"
+                aria-pressed={filter === t}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  filter === t
+                    ? "bg-brand-600 text-white shadow-sm"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                 }`}
               >
                 {t}
@@ -641,8 +640,8 @@ export default function Messages() {
               <button
                 key={c.id}
                 onClick={() => openChat(c.id)}
-                className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 ${
-                  activeId === c.id ? "bg-brand-50" : ""
+                className={`relative w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
+                  activeId === c.id ? "bg-brand-50/70 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-brand-600" : ""
                 }`}
               >
                 <div className="relative shrink-0">
@@ -704,7 +703,7 @@ export default function Messages() {
                     <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
                       {active.name}
                       {active.role && (
-                        <span className="text-[11px] bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">
+                        <span className="text-[11px] bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200 px-2 py-0.5 rounded-full font-medium">
                           {active.role}
                         </span>
                       )}
@@ -713,10 +712,10 @@ export default function Messages() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-gray-400">
-                  <button onClick={() => setNotice("Voice call starts here.")} className="p-2 hover:text-brand-600">
+                  <button onClick={() => setNotice("Voice call starts here.")} className="p-2 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors">
                     <Phone size={16} />
                   </button>
-                  <button onClick={() => setNotice("Video call starts here.")} className="p-2 hover:text-brand-600">
+                  <button onClick={() => setNotice("Video call starts here.")} className="p-2 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors">
                     <Video size={16} />
                   </button>
                   <ChatMenu
@@ -729,7 +728,7 @@ export default function Messages() {
                 </div>
               </div>
 
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4" style={{ maxHeight: 380 }}>
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50/40" style={{ maxHeight: 380 }}>
                 {active.messages.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center mt-10">No messages yet. Say hello 👋</p>
                 ) : (
@@ -738,10 +737,10 @@ export default function Messages() {
                     {active.messages.map((m) => (
                       <div key={m.id} className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}>
                         <div
-                          className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line ${
+                          className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line shadow-sm ${
                             m.from === "me"
                               ? "bg-brand-600 text-white rounded-br-sm"
-                              : "bg-gray-100 text-gray-800 rounded-bl-sm"
+                              : "bg-white border border-gray-100 text-gray-800 rounded-bl-sm"
                           }`}
                         >
                           {m.text}
@@ -763,7 +762,7 @@ export default function Messages() {
               <div className="p-4 border-t border-gray-100 flex items-center gap-2">
                 <button
                   onClick={() => fileRef.current?.click()}
-                  className="p-2 text-gray-400 hover:text-brand-600"
+                  className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                   title="Attach a file"
                 >
                   <Paperclip size={18} />
@@ -779,12 +778,13 @@ export default function Messages() {
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
                   placeholder="Type a message..."
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+                  aria-label="Message"
+                  className={`${inputClass} flex-1`}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={!draft.trim()}
-                  className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700 disabled:opacity-40 shrink-0"
+                  className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700 active:bg-brand-800 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
                   aria-label="Send message"
                 >
                   <Send size={16} />

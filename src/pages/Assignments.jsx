@@ -60,19 +60,19 @@
 //       <Card className="overflow-x-auto">
 //         <table className="w-full text-sm">
 //           <thead>
-//             <tr className="text-left text-gray-500 border-b border-gray-100">
-//               <th className="font-medium py-3 px-5">Assignment Title</th>
-//               <th className="font-medium py-3 px-5">Course</th>
-//               <th className="font-medium py-3 px-5">Due Date</th>
-//               <th className="font-medium py-3 px-5">Submitted</th>
-//               <th className="font-medium py-3 px-5">Status</th>
-//               <th className="font-medium py-3 px-5">Actions</th>
+//             <tr className={tableHeadRowClass}>
+//               <th className={tableHeadCellClass}>Assignment Title</th>
+//               <th className={tableHeadCellClass}>Course</th>
+//               <th className={tableHeadCellClass}>Due Date</th>
+//               <th className={tableHeadCellClass}>Submitted</th>
+//               <th className={tableHeadCellClass}>Status</th>
+//               <th className={tableHeadCellClass}>Actions</th>
 //             </tr>
 //           </thead>
 //           <tbody className="divide-y divide-gray-100">
 //             {filtered.map((a) => (
-//               <tr key={a.id} className="hover:bg-gray-50">
-//                 <td className="py-3 px-5">
+//               <tr key={a.id} className={tableRowClass}>
+//                 <td className="py-3.5 px-5">
 //                   <div className="flex items-center gap-3">
 //                     <div className="w-9 h-9 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center shrink-0">
 //                       <FileText size={15} />
@@ -80,14 +80,14 @@
 //                     <span className="font-medium text-gray-900">{a.title}</span>
 //                   </div>
 //                 </td>
-//                 <td className="py-3 px-5 text-gray-600">
+//                 <td className="py-3.5 px-5 text-gray-600">
 //                   <p>{a.course}</p>
 //                   <p className="text-xs text-gray-400">{a.meta}</p>
 //                 </td>
-//                 <td className="py-3 px-5 text-rose-500">{a.due}</td>
-//                 <td className="py-3 px-5 text-gray-600">{a.submitted}</td>
-//                 <td className="py-3 px-5"><Badge status={a.status} /></td>
-//                 <td className="py-3 px-5">
+//                 <td className="py-3.5 px-5 text-rose-500">{a.due}</td>
+//                 <td className="py-3.5 px-5 text-gray-600">{a.submitted}</td>
+//                 <td className="py-3.5 px-5"><Badge status={a.status} /></td>
+//                 <td className="py-3.5 px-5">
 //                   <button className="p-1.5 text-gray-400 hover:text-gray-600">
 //                     <MoreVertical size={16} />
 //                   </button>
@@ -125,7 +125,7 @@ import {
   ClipboardList,
   Eye,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card } from "../components/ui";
+import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, Notice, Tabs, EmptyState, SecondaryButton, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass } from "../components/ui";
 import { assignments as seedAssignments } from "../data/mockData";
 
 const TABS = [
@@ -242,21 +242,20 @@ function AssignmentModal({ initial, onClose, onSave }) {
     onClose();
   }
 
-  const field =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400";
-  const label = "block text-sm text-gray-600 mb-1.5";
+  const field = inputClass;
+  const label = labelClass;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">
             {isEdit ? "Edit assignment" : "Create assignment"}
           </h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -265,7 +264,7 @@ function AssignmentModal({ initial, onClose, onSave }) {
           <div>
             <label className={label}>Assignment title</label>
             <input autoFocus className={field} value={form.title} onChange={set("title")} placeholder="Anatomy Quiz - Unit 2" />
-            {errors.title && <p className="text-xs text-rose-600 mt-1">{errors.title}</p>}
+            {errors.title && <p className="text-xs text-rose-600 mt-1.5">{errors.title}</p>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -303,7 +302,7 @@ function AssignmentModal({ initial, onClose, onSave }) {
                 value={toInputValue(new Date(form.dueAt))}
                 onChange={(e) => setForm((f) => ({ ...f, dueAt: new Date(e.target.value) }))}
               />
-              {errors.dueAt && <p className="text-xs text-rose-600 mt-1">{errors.dueAt}</p>}
+              {errors.dueAt && <p className="text-xs text-rose-600 mt-1.5">{errors.dueAt}</p>}
             </div>
             <div>
               <label className={label}>Maximum marks</label>
@@ -315,7 +314,7 @@ function AssignmentModal({ initial, onClose, onSave }) {
             <div>
               <label className={label}>Students assigned</label>
               <input className={field} value={form.totalStudents} onChange={set("totalStudents")} inputMode="numeric" />
-              {errors.totalStudents && <p className="text-xs text-rose-600 mt-1">{errors.totalStudents}</p>}
+              {errors.totalStudents && <p className="text-xs text-rose-600 mt-1.5">{errors.totalStudents}</p>}
             </div>
             <div>
               <label className={label}>Status</label>
@@ -328,16 +327,16 @@ function AssignmentModal({ initial, onClose, onSave }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors text-white text-sm font-medium"
           >
             {isEdit ? "Save changes" : "Create assignment"}
           </button>
@@ -356,9 +355,9 @@ function DetailModal({ item, now, onClose, onEdit }) {
   const due = dueLabel(item.dueAt, now);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
@@ -368,7 +367,7 @@ function DetailModal({ item, now, onClose, onEdit }) {
               {item.course} · {item.meta || "All batches"}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -414,16 +413,16 @@ function DetailModal({ item, now, onClose, onEdit }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
           >
             Close
           </button>
           <button
             onClick={() => { onClose(); onEdit(); }}
-            className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors text-white text-sm font-medium"
           >
             Edit assignment
           </button>
@@ -447,28 +446,28 @@ function RowMenu({ item, onEdit, onDuplicate, onPublish, onMarkReviewed, onDelet
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((v) => !v)} className="p-1.5 hover:text-gray-600" aria-label="More actions">
+      <button onClick={() => setOpen((v) => !v)} className="p-1.5 rounded-lg hover:text-gray-700 hover:bg-gray-100 transition-colors" aria-label="More actions">
         <MoreVertical size={16} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm z-20">
+        <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
           <button
             onClick={() => { setOpen(false); onEdit(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Pencil size={14} /> Edit
           </button>
           {item.status === "Draft" ? (
             <button
               onClick={() => { setOpen(false); onPublish(); }}
-              className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+              className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
             >
               <Send size={14} /> Publish to students
             </button>
           ) : (
             <button
               onClick={() => { setOpen(false); onPublish(); }}
-              className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+              className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
             >
               <Undo2 size={14} /> Move to draft
             </button>
@@ -476,20 +475,20 @@ function RowMenu({ item, onEdit, onDuplicate, onPublish, onMarkReviewed, onDelet
           {item.status === "Pending Review" && (
             <button
               onClick={() => { setOpen(false); onMarkReviewed(); }}
-              className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+              className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
             >
               <CheckCircle2 size={14} /> Mark as reviewed
             </button>
           )}
           <button
             onClick={() => { setOpen(false); onDuplicate(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Copy size={14} /> Duplicate
           </button>
           <button
             onClick={() => { setOpen(false); onDelete(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-rose-50 text-rose-600"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition-colors"
           >
             <Trash2 size={14} /> Delete
           </button>
@@ -593,7 +592,7 @@ export default function Assignments() {
   }
 
   const SortHeader = ({ label, sortKey }) => (
-    <th className="font-medium py-3 px-5">
+    <th className={tableHeadCellClass}>
       <button
         onClick={() =>
           setSort((s) =>
@@ -602,7 +601,7 @@ export default function Assignments() {
               : { key: sortKey, dir: "asc" }
           )
         }
-        className={`inline-flex items-center gap-1 hover:text-gray-700 ${
+        className={`inline-flex items-center gap-1 rounded-md uppercase tracking-wider transition-colors hover:text-gray-800 ${
           sort.key === sortKey ? "text-brand-600" : ""
         }`}
       >
@@ -624,28 +623,7 @@ export default function Assignments() {
         }
       />
 
-      <div className="flex gap-6 border-b border-gray-200 mb-5 overflow-x-auto scrollbar-none">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`pb-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
-              tab === t.key
-                ? "border-brand-600 text-brand-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t.label}
-            <span
-              className={`ml-2 text-[11px] px-1.5 py-0.5 rounded-full ${
-                tab === t.key ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {countFor(t.key)}
-            </span>
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} count={countFor} className="mb-5" />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <SearchInput
@@ -661,22 +639,18 @@ export default function Assignments() {
         </Select>
       </div>
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-100">
+            <tr className={tableHeadRowClass}>
               <SortHeader label="Assignment Title" sortKey="title" />
               <SortHeader label="Course" sortKey="course" />
               <SortHeader label="Due Date" sortKey="dueAt" />
               <SortHeader label="Submitted" sortKey="submitted" />
               <SortHeader label="Status" sortKey="status" />
-              <th className="font-medium py-3 px-5">Actions</th>
+              <th className={tableHeadCellClass}>Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -686,28 +660,28 @@ export default function Assignments() {
                 ? Math.round((a.submittedCount / a.totalStudents) * 100)
                 : 0;
               return (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="py-3 px-5">
+                <tr key={a.id} className={tableRowClass}>
+                  <td className="py-3.5 px-5">
                     <button onClick={() => setDetail(a)} className="flex items-center gap-3 text-left">
                       <div className="w-9 h-9 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center shrink-0">
                         <FileText size={15} />
                       </div>
-                      <span className="font-medium text-gray-900 hover:text-brand-600">{a.title}</span>
+                      <span className="font-medium text-gray-900 hover:text-brand-600 transition-colors">{a.title}</span>
                     </button>
                   </td>
-                  <td className="py-3 px-5 text-gray-600">
+                  <td className="py-3.5 px-5 text-gray-600">
                     <p>{a.course}</p>
                     <p className="text-xs text-gray-400">{a.meta}</p>
                   </td>
-                  <td className="py-3 px-5">
-                    <p className={due.urgent ? "text-rose-500" : "text-gray-600"}>{fmtDue(a.dueAt)}</p>
+                  <td className="py-3.5 px-5">
+                    <p className={`whitespace-nowrap ${due.urgent ? "text-rose-500 font-medium" : "text-gray-600"}`}>{fmtDue(a.dueAt)}</p>
                     <p className="text-xs text-gray-400">{due.text}</p>
                   </td>
-                  <td className="py-3 px-5">
+                  <td className="py-3.5 px-5">
                     <div className="flex items-center gap-2 min-w-[110px]">
                       <div className="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-brand-500 rounded-full transition-all"
+                          className="h-full bg-brand-500 rounded-full transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -716,13 +690,13 @@ export default function Assignments() {
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-5"><Badge status={a.status} /></td>
-                  <td className="py-3 px-5">
+                  <td className="py-3.5 px-5"><Badge status={a.status} /></td>
+                  <td className="py-3.5 px-5">
                     <div className="flex items-center gap-1 text-gray-400">
-                      <button onClick={() => setDetail(a)} className="p-1.5 hover:text-brand-600" title="View details">
+                      <button onClick={() => setDetail(a)} className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors" title="View details">
                         <Eye size={16} />
                       </button>
-                      <button onClick={() => setEditing(a)} className="p-1.5 hover:text-brand-600" title="Edit">
+                      <button onClick={() => setEditing(a)} className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors" title="Edit">
                         <Pencil size={15} />
                       </button>
                       <RowMenu
@@ -742,34 +716,20 @@ export default function Assignments() {
         </table>
 
         {visible.length === 0 && (
-          <div className="p-12 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mx-auto mb-3">
-              {items.length === 0 ? <ClipboardList size={24} /> : <SearchX size={24} />}
-            </div>
-            <p className="text-sm font-medium text-gray-800">
-              {items.length === 0 ? "No assignments yet" : "No assignments match your filters"}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {items.length === 0
+          <EmptyState
+            icon={items.length === 0 ? <ClipboardList size={24} /> : <SearchX size={24} />}
+            title={items.length === 0 ? "No assignments yet" : "No assignments match your filters"}
+            description={
+              items.length === 0
                 ? "Create an assignment and it will appear here."
-                : "Try a different tab, course or search term."}
-            </p>
-            {items.length === 0 ? (
-              <button
-                onClick={() => setEditing({})}
-                className="mt-4 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl"
-              >
-                <Plus size={15} /> Create Assignment
-              </button>
-            ) : (
-              <button
-                onClick={() => { setQuery(""); setCourse("all"); setTab("all"); }}
-                className="mt-4 text-sm font-medium text-brand-600 hover:underline"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
+                : "Try a different tab, course or search term."
+            }
+            action={
+              items.length === 0
+                ? (<PrimaryButton icon={Plus} onClick={() => setEditing({})}>Create Assignment</PrimaryButton>)
+                : (<SecondaryButton onClick={() => { setQuery(""); setCourse("all"); setTab("all"); }}>Clear filters</SecondaryButton>)
+            }
+          />
         )}
       </Card>
 

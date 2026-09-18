@@ -86,7 +86,7 @@ import {
   BookOpen,
   ImageOff,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card } from "../components/ui";
+import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, Notice, EmptyState, inputClass, labelClass } from "../components/ui";
 import { courses as seedCourses } from "../data/mockData";
 
 const SEMESTERS = [
@@ -162,24 +162,23 @@ function CourseModal({ initial, onClose, onSave }) {
     }
   }
 
-  const field =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400";
-  const label = "block text-sm text-gray-600 mb-1.5";
+  const field = inputClass;
+  const label = labelClass;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">
             {isEdit ? "Edit course" : "Create course"}
           </h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -194,7 +193,7 @@ function CourseModal({ initial, onClose, onSave }) {
               onChange={set("title")}
               placeholder="Anatomy and Physiology"
             />
-            {errors.title && <p className="text-xs text-rose-600 mt-1">{errors.title}</p>}
+            {errors.title && <p className="text-xs text-rose-600 mt-1.5">{errors.title}</p>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -226,7 +225,7 @@ function CourseModal({ initial, onClose, onSave }) {
                 placeholder="32"
                 inputMode="numeric"
               />
-              {errors.students && <p className="text-xs text-rose-600 mt-1">{errors.students}</p>}
+              {errors.students && <p className="text-xs text-rose-600 mt-1.5">{errors.students}</p>}
             </div>
             <div>
               <label className={label}>Status</label>
@@ -260,17 +259,17 @@ function CourseModal({ initial, onClose, onSave }) {
           )}
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-medium"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium"
           >
             {saving ? "Saving..." : isEdit ? "Save changes" : "Create course"}
           </button>
@@ -297,27 +296,27 @@ function CardMenu({ onEdit, onDuplicate, onDelete }) {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Course actions"
-        className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-gray-500 hover:bg-white"
+        className="w-8 h-8 bg-white/90 backdrop-blur rounded-full shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-gray-900 transition-colors"
       >
         <MoreVertical size={15} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm">
+        <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
           <button
             onClick={() => { setOpen(false); onEdit(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Pencil size={14} /> Edit
           </button>
           <button
             onClick={() => { setOpen(false); onDuplicate(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Copy size={14} /> Duplicate
           </button>
           <button
             onClick={() => { setOpen(false); onDelete(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-rose-50 text-rose-600"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition-colors"
           >
             <Trash2 size={14} /> Delete
           </button>
@@ -416,51 +415,49 @@ export default function MyCourses() {
         </Select>
       </div>
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       {filtered.length === 0 ? (
-        <Card className="p-12 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mx-auto mb-3">
-            {courses.length === 0 ? <BookOpen size={24} /> : <ImageOff size={24} />}
-          </div>
-          <p className="text-sm font-medium text-gray-800">
-            {courses.length === 0 ? "No courses yet" : "No courses match your filters"}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            {courses.length === 0
-              ? "Create your first course and it will show up here."
-              : "Clear the search or pick a different semester."}
-          </p>
-          {courses.length === 0 && (
-            <button
-              onClick={() => setModal({})}
-              className="mt-4 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl"
-            >
-              <Plus size={15} /> Create Course
-            </button>
-          )}
+        <Card>
+          <EmptyState
+            icon={courses.length === 0 ? <BookOpen size={24} /> : <ImageOff size={24} />}
+            title={courses.length === 0 ? "No courses yet" : "No courses match your filters"}
+            description={
+              courses.length === 0
+                ? "Create your first course and it will show up here."
+                : "Clear the search or pick a different semester."
+            }
+            action={
+              courses.length === 0 ? (
+                <PrimaryButton icon={Plus} onClick={() => setModal({})}>
+                  Create Course
+                </PrimaryButton>
+              ) : null
+            }
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {filtered.map((c) => (
-            <Card key={c.id} className="overflow-hidden">
-              <div className="relative">
-                <img src={c.image} alt={c.title} className="w-full h-36 object-cover" />
+            <Card key={c.id} hover className="overflow-hidden group flex flex-col">
+              <div className="relative overflow-hidden">
+                <img
+                  src={c.image}
+                  alt={c.title}
+                  className="w-full h-36 object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
                 <CardMenu
                   onEdit={() => setModal(c)}
                   onDuplicate={() => handleDuplicate(c)}
                   onDelete={() => handleDelete(c)}
                 />
               </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-gray-900 text-sm">{c.title}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{c.program}</p>
+              <div className="p-4 flex-1 flex flex-col">
+                <h3 className="font-semibold text-gray-900 text-sm leading-snug">{c.title}</h3>
+                <p className="text-xs text-gray-500 mt-1">{c.program}</p>
                 <p className="text-xs text-gray-400">{c.semester}</p>
-                <div className="flex items-center justify-between mt-3">
+                <div className="flex items-center justify-between mt-auto pt-3">
                   <span className="flex items-center gap-1 text-xs text-gray-500">
                     <Users size={13} /> {c.students} Students
                   </span>

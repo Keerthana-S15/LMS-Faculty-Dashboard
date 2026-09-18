@@ -220,7 +220,7 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
-import { PageHeader, Card, Badge } from "../components/ui";
+import { PageHeader, Card, Badge, Notice, Tabs, inputClass, labelClass, PrimaryButton, SecondaryButton, OutlineButton, Avatar } from "../components/ui";
 import { faculty as seedFaculty, courses } from "../data/mockData";
 
 const TABS = ["Overview", "Personal Information", "Academic Information", "Preferences", "Security"];
@@ -242,16 +242,16 @@ const DEFAULT_PREFS = {
 function Field({ name, labelText, type = "text", value, onChange, disabled, error, ...rest }) {
   return (
     <div>
-      <label className="block text-sm text-gray-600 mb-1.5">{labelText}</label>
+      <label className={labelClass}>{labelText}</label>
       <input
         type={type}
         value={value ?? ""}
         onChange={onChange}
         disabled={disabled}
-        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 disabled:bg-gray-50 disabled:text-gray-500"
+        className={inputClass}
         {...rest}
       />
-      {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+      {error && <p className="text-xs text-rose-600 mt-1.5">{error}</p>}
     </div>
   );
 }
@@ -325,9 +325,7 @@ export default function Profile() {
     setNotice("Profile photo updated.");
   }
 
-  const field =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 disabled:bg-gray-50 disabled:text-gray-500";
-  const label = "block text-sm text-gray-600 mb-1.5";
+  const field = inputClass;
 
   const Toggle = ({ checked, onChange, title, description }) => (
     <div className="flex items-start justify-between gap-4 py-3 border-b border-gray-50 last:border-0">
@@ -339,8 +337,8 @@ export default function Profile() {
         onClick={onChange}
         role="switch"
         aria-checked={checked}
-        className={`w-11 h-6 rounded-full p-0.5 shrink-0 transition-colors ${
-          checked ? "bg-brand-600" : "bg-gray-200"
+        className={`w-11 h-6 rounded-full p-0.5 shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-400 ${
+          checked ? "bg-brand-600" : "bg-gray-200 hover:bg-gray-300"
         }`}
       >
         <span
@@ -361,47 +359,33 @@ export default function Profile() {
         action={
           editing ? (
             <div className="flex gap-2">
-              <button
-                onClick={handleDiscard}
-                className="inline-flex items-center gap-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium px-4 py-2.5 rounded-xl"
-              >
-                <RotateCcw size={15} /> Discard
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!dirty}
-                className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white text-sm font-medium px-4 py-2.5 rounded-xl"
-              >
-                <Save size={15} /> Save changes
-              </button>
+              <SecondaryButton icon={RotateCcw} onClick={handleDiscard}>
+                Discard
+              </SecondaryButton>
+              <PrimaryButton icon={Save} onClick={handleSave} disabled={!dirty}>
+                Save changes
+              </PrimaryButton>
             </div>
           ) : (
-            <button
+            <PrimaryButton
+              icon={Pencil}
               onClick={() => { setEditing(true); setTab("Personal Information"); }}
-              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl"
             >
-              <Pencil size={15} /> Edit Profile
-            </button>
+              Edit Profile
+            </PrimaryButton>
           )
         }
       />
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex flex-col items-center shrink-0">
-            <img src={photo} alt={profile.name} className="w-28 h-28 rounded-full object-cover" />
-            <button
-              onClick={() => photoRef.current?.click()}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium border border-brand-200 text-brand-700 px-3 py-1.5 rounded-lg hover:bg-brand-50"
-            >
-              <Camera size={13} /> Change Photo
-            </button>
+            <Avatar src={photo} name={profile.name} size={112} className="ring-4 ring-brand-50 shadow-card" />
+            <OutlineButton icon={Camera} size="sm" onClick={() => photoRef.current?.click()} className="mt-3">
+              Change Photo
+            </OutlineButton>
             <input
               ref={photoRef}
               type="file"
@@ -414,7 +398,7 @@ export default function Profile() {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-gray-900">{profile.name}</h2>
-              <span className="text-xs font-medium bg-brand-100 text-brand-700 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-medium bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200 px-2.5 py-0.5 rounded-full">
                 {profile.role}
               </span>
             </div>
@@ -436,8 +420,10 @@ export default function Profile() {
               { icon: Clock, label: "Experience", value: profile.experience },
               { icon: Clock, label: "Teaching Since", value: profile.teachingSince },
             ].map((item) => (
-              <div key={item.label} className="flex items-start gap-2">
-                <item.icon size={16} className="text-brand-500 mt-0.5" />
+              <div key={item.label} className="flex items-start gap-2.5">
+                <span className="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
+                  <item.icon size={15} />
+                </span>
                 <div>
                   <p className="text-xs text-gray-400">{item.label}</p>
                   <p className="text-sm font-medium text-gray-900">{item.value}</p>
@@ -448,19 +434,7 @@ export default function Profile() {
         </div>
       </Card>
 
-      <div className="flex gap-6 border-b border-gray-200 mb-6 overflow-x-auto scrollbar-none">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`pb-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
-              tab === t ? "border-brand-600 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} className="mb-6" />
 
       {tab === "Overview" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -489,7 +463,7 @@ export default function Profile() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {activeCourses.slice(0, 3).map((c) => (
-                <Link key={c.id} to="/courses" className="rounded-xl overflow-hidden border border-gray-100 hover:shadow-card">
+                <Link key={c.id} to="/courses" className="rounded-xl overflow-hidden border border-gray-100 transition-all hover:shadow-card-hover hover:border-brand-200 hover:-translate-y-0.5">
                   <img src={c.image} alt={c.title} className="w-full h-20 object-cover" />
                   <div className="p-2.5">
                     <p className="text-xs font-medium text-gray-900 truncate">{c.title}</p>
@@ -722,8 +696,7 @@ function SecurityTab({ prefs, setPrefs, onNotice }) {
     onNotice("Password changed.");
   }
 
-  const field =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400";
+  const field = inputClass;
 
   return (
     <Card className="p-6 max-w-2xl">
@@ -732,7 +705,7 @@ function SecurityTab({ prefs, setPrefs, onNotice }) {
 
       <div className="space-y-4 max-w-sm">
         <div>
-          <label className="block text-sm text-gray-600 mb-1.5">Current password</label>
+          <label className={labelClass}>Current password</label>
           <div className="relative">
             <input
               type={show ? "text" : "password"}
@@ -742,17 +715,17 @@ function SecurityTab({ prefs, setPrefs, onNotice }) {
             />
             <button
               onClick={() => setShow((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               aria-label={show ? "Hide passwords" : "Show passwords"}
             >
               {show ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {errors.current && <p className="text-xs text-rose-600 mt-1">{errors.current}</p>}
+          {errors.current && <p className="text-xs text-rose-600 mt-1.5">{errors.current}</p>}
         </div>
 
         <div>
-          <label className="block text-sm text-gray-600 mb-1.5">New password</label>
+          <label className={labelClass}>New password</label>
           <input
             type={show ? "text" : "password"}
             className={field}
@@ -762,31 +735,28 @@ function SecurityTab({ prefs, setPrefs, onNotice }) {
           {pwd.next && (
             <div className="flex items-center gap-2 mt-1.5">
               <div className="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${strengthColor}`} style={{ width: `${(strength / 4) * 100}%` }} />
+                <div className={`h-full rounded-full transition-all duration-300 ${strengthColor}`} style={{ width: `${(strength / 4) * 100}%` }} />
               </div>
               <span className="text-xs text-gray-500">{strengthLabel}</span>
             </div>
           )}
-          {errors.next && <p className="text-xs text-rose-600 mt-1">{errors.next}</p>}
+          {errors.next && <p className="text-xs text-rose-600 mt-1.5">{errors.next}</p>}
         </div>
 
         <div>
-          <label className="block text-sm text-gray-600 mb-1.5">Confirm new password</label>
+          <label className={labelClass}>Confirm new password</label>
           <input
             type={show ? "text" : "password"}
             className={field}
             value={pwd.confirm}
             onChange={(e) => setPwd((p) => ({ ...p, confirm: e.target.value }))}
           />
-          {errors.confirm && <p className="text-xs text-rose-600 mt-1">{errors.confirm}</p>}
+          {errors.confirm && <p className="text-xs text-rose-600 mt-1.5">{errors.confirm}</p>}
         </div>
 
-        <button
-          onClick={changePassword}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl"
-        >
-          <ShieldCheck size={15} /> Update password
-        </button>
+        <PrimaryButton icon={ShieldCheck} onClick={changePassword}>
+          Update password
+        </PrimaryButton>
       </div>
 
       <div className="mt-8 pt-6 border-t border-gray-100">
@@ -833,7 +803,7 @@ function SecurityTab({ prefs, setPrefs, onNotice }) {
                 ) : (
                   <button
                     onClick={() => onNotice("Signed out of that device.")}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-colors"
                   >
                     <Trash2 size={13} /> Sign out
                   </button>

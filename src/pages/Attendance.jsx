@@ -36,7 +36,7 @@
 //         <PrimaryButton icon={Filter}>Apply Filters</PrimaryButton>
 //       </div>
 
-//       <div className="flex flex-wrap gap-4 mb-6">
+//       <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
 //         <StatCard icon={Users} label="Total Students" value={total} tint="purple" />
 //         <StatCard icon={CheckCircle2} label="Present" value={`${present} (81.25%)`} tint="green" />
 //         <StatCard icon={XCircle} label="Absent" value={`${absent} (18.75%)`} tint="red" />
@@ -63,22 +63,22 @@
 //         <div className="overflow-x-auto">
 //           <table className="w-full text-sm">
 //             <thead>
-//               <tr className="text-left text-gray-500 bg-gray-50 border-b border-gray-100">
-//                 <th className="font-medium py-3 px-4 w-8">
+//               <tr className={tableHeadRowClass}>
+//                 <th className="font-semibold py-3 px-4 w-8">
 //                   <input type="checkbox" className="rounded border-gray-300" />
 //                 </th>
-//                 <th className="font-medium py-3 px-3">#</th>
-//                 <th className="font-medium py-3 px-3">Student Name</th>
-//                 <th className="font-medium py-3 px-3">Roll Number</th>
-//                 <th className="font-medium py-3 px-3">Status</th>
-//                 <th className="font-medium py-3 px-3">Check In</th>
-//                 <th className="font-medium py-3 px-3">Check Out</th>
-//                 <th className="font-medium py-3 px-3">Remarks</th>
+//                 <th className="font-semibold py-3 px-3 whitespace-nowrap">#</th>
+//                 <th className="font-semibold py-3 px-3 whitespace-nowrap">Student Name</th>
+//                 <th className="font-semibold py-3 px-3 whitespace-nowrap">Roll Number</th>
+//                 <th className="font-semibold py-3 px-3 whitespace-nowrap">Status</th>
+//                 <th className="font-semibold py-3 px-3 whitespace-nowrap">Check In</th>
+//                 <th className="font-semibold py-3 px-3 whitespace-nowrap">Check Out</th>
+//                 <th className="font-semibold py-3 px-3 whitespace-nowrap">Remarks</th>
 //               </tr>
 //             </thead>
 //             <tbody className="divide-y divide-gray-100">
 //               {attendance.map((a, i) => (
-//                 <tr key={a.id} className="hover:bg-gray-50">
+//                 <tr key={a.id} className={tableRowClass}>
 //                   <td className="py-3 px-4">
 //                     <input type="checkbox" className="rounded border-gray-300" />
 //                   </td>
@@ -117,7 +117,7 @@ import {
   RotateCcw,
   SearchX,
 } from "lucide-react";
-import { PageHeader, OutlineButton, PrimaryButton, Select, StatCard, Card } from "../components/ui";
+import { PageHeader, OutlineButton, PrimaryButton, Select, StatCard, Card, Notice, EmptyState, tableHeadRowClass, SecondaryButton, SegmentedControl } from "../components/ui";
 import { attendance as seedAttendance, students as seedStudents } from "../data/mockData";
 
 const COURSES = [
@@ -302,12 +302,14 @@ export default function Attendance() {
   }
 
   const StatusPicker = ({ row }) => (
-    <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+    <div className="inline-flex rounded-lg border border-gray-200 bg-white divide-x divide-gray-200 overflow-hidden shadow-sm">
       {STATUSES.map((s) => (
         <button
           key={s}
           onClick={() => setStatus([row.id], s)}
-          className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+          title={s}
+          aria-pressed={row.status === s}
+          className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
             row.status === s ? statusStyle[s] : "text-gray-500 hover:bg-gray-50"
           }`}
         >
@@ -335,7 +337,7 @@ export default function Attendance() {
         }
       />
 
-      <div className="flex flex-col lg:flex-row gap-3 mb-6">
+      <Card className="p-4 mb-6 flex flex-col lg:flex-row lg:items-center gap-3">
         <Select value={draft.course} onChange={(e) => setDraft((d) => ({ ...d, course: e.target.value }))}>
           {COURSES.map((c) => (
             <option key={c}>{c}</option>
@@ -346,36 +348,35 @@ export default function Attendance() {
             <option key={b}>{b}</option>
           ))}
         </Select>
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600">
-          <CalendarDays size={15} className="text-gray-400" />
+        <label className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white shadow-sm text-sm text-gray-700 hover:border-gray-300 focus-within:ring-2 focus-within:ring-brand-200 focus-within:border-brand-400 transition-[box-shadow,border-color]">
+          <CalendarDays size={15} className="text-gray-400 shrink-0" />
           <input
             type="date"
             value={draft.date}
             max={todayKey()}
             onChange={(e) => setDraft((d) => ({ ...d, date: e.target.value }))}
-            className="bg-transparent focus:outline-none"
+            className="bg-transparent focus:outline-none min-w-0"
+            aria-label="Attendance date"
           />
-        </div>
+        </label>
         <PrimaryButton icon={Filter} onClick={() => setApplied(draft)}>
           Apply Filters
         </PrimaryButton>
         {filtersChanged && (
-          <span className="self-center text-xs text-amber-600">Filters changed — apply to reload.</span>
+          <span className="inline-flex items-center self-center text-xs font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-full px-2.5 py-1 animate-fade-in">
+            Filters changed — apply to reload
+          </span>
         )}
-      </div>
+      </Card>
 
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
         <StatCard icon={Users} label="Total Students" value={counts.total} sub={`${counts.unmarked} not marked`} tint="purple" />
         <StatCard icon={CheckCircle2} label="Present" value={`${counts.present} (${pct(counts.present, counts.total)})`} tint="green" />
         <StatCard icon={XCircle} label="Absent" value={`${counts.absent} (${pct(counts.absent, counts.total)})`} tint="red" />
         <StatCard icon={Clock3} label="Late" value={`${counts.late} (${pct(counts.late, counts.total)})`} tint="blue" />
       </div>
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -393,35 +394,23 @@ export default function Attendance() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleMarkAllPresent}
-              className="inline-flex items-center gap-1.5 text-sm font-medium border border-emerald-200 text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-xl"
+              className="inline-flex items-center gap-1.5 text-sm font-medium border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 px-3 py-2 rounded-xl transition-colors"
             >
               <CheckCheck size={15} /> Mark all present
             </button>
-            <div className="flex bg-gray-100 rounded-lg p-1 text-sm">
-              {["By Date", "By Session"].map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
-                    view === v ? "bg-brand-600 text-white" : "text-gray-500"
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl options={["By Date", "By Session"]} value={view} onChange={setView} />
           </div>
         </div>
 
         {selected.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-4 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-2 mb-4 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5 animate-fade-in">
             <span className="text-sm text-brand-800 font-medium">{selected.length} selected</span>
             <span className="text-xs text-gray-500">Mark as</span>
             {STATUSES.map((s) => (
               <button
                 key={s}
                 onClick={() => { setStatus(selected, s); setSelected([]); }}
-                className={`text-xs font-medium px-3 py-1.5 rounded-lg ${statusStyle[s]}`}
+                className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 ${statusStyle[s]}`}
               >
                 {s}
               </button>
@@ -438,7 +427,7 @@ export default function Attendance() {
         {view === "By Session" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {bySession.map((s) => (
-              <div key={s.id} className="border border-gray-100 rounded-xl p-4">
+              <div key={s.id} className="bg-gray-50/70 border border-gray-100 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-gray-900">{s.label}</p>
                   <span className="text-xs text-gray-400">{s.time}</span>
@@ -457,8 +446,8 @@ export default function Attendance() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-500 bg-gray-50 border-b border-gray-100">
-                <th className="font-medium py-3 px-4 w-8">
+              <tr className={tableHeadRowClass}>
+                <th className="font-semibold py-3 px-4 w-8">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -466,19 +455,19 @@ export default function Attendance() {
                     className="rounded border-gray-300"
                   />
                 </th>
-                <th className="font-medium py-3 px-3">#</th>
-                <th className="font-medium py-3 px-3">Student Name</th>
-                <th className="font-medium py-3 px-3">Roll Number</th>
-                {view === "By Session" && <th className="font-medium py-3 px-3">Session</th>}
-                <th className="font-medium py-3 px-3">Status</th>
-                <th className="font-medium py-3 px-3">Check In</th>
-                <th className="font-medium py-3 px-3">Check Out</th>
-                <th className="font-medium py-3 px-3">Remarks</th>
+                <th className="font-semibold py-3 px-3 whitespace-nowrap">#</th>
+                <th className="font-semibold py-3 px-3 whitespace-nowrap">Student Name</th>
+                <th className="font-semibold py-3 px-3 whitespace-nowrap">Roll Number</th>
+                {view === "By Session" && <th className="font-semibold py-3 px-3 whitespace-nowrap">Session</th>}
+                <th className="font-semibold py-3 px-3 whitespace-nowrap">Status</th>
+                <th className="font-semibold py-3 px-3 whitespace-nowrap">Check In</th>
+                <th className="font-semibold py-3 px-3 whitespace-nowrap">Check Out</th>
+                <th className="font-semibold py-3 px-3 whitespace-nowrap">Remarks</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {rows.map((r, i) => (
-                <tr key={r.id} className={`hover:bg-gray-50 ${selected.includes(r.id) ? "bg-brand-50/50" : ""}`}>
+                <tr key={r.id} className={`transition-colors hover:bg-brand-50/40 ${selected.includes(r.id) ? "bg-brand-50/60" : ""}`}>
                   <td className="py-3 px-4">
                     <input
                       type="checkbox"
@@ -514,13 +503,11 @@ export default function Attendance() {
           </table>
 
           {rows.length === 0 && (
-            <div className="p-12 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mx-auto mb-3">
-                <SearchX size={24} />
-              </div>
-              <p className="text-sm font-medium text-gray-800">No students in this batch</p>
-              <p className="text-sm text-gray-500 mt-1">Pick a different course or batch and apply again.</p>
-            </div>
+            <EmptyState
+              icon={<SearchX size={24} />}
+              title="No students in this batch"
+              description="Pick a different course or batch and apply again."
+            />
           )}
         </div>
 
@@ -530,20 +517,13 @@ export default function Attendance() {
           </p>
           <div className="flex items-center gap-2">
             {dirty && (
-              <button
-                onClick={handleReset}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl"
-              >
-                <RotateCcw size={15} /> Discard
-              </button>
+              <SecondaryButton icon={RotateCcw} size="sm" onClick={handleReset}>
+                Discard
+              </SecondaryButton>
             )}
-            <button
-              onClick={handleSave}
-              disabled={!dirty}
-              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-xl"
-            >
-              <Save size={15} /> {dirty ? "Save attendance" : "All changes saved"}
-            </button>
+            <PrimaryButton icon={Save} size="sm" onClick={handleSave} disabled={!dirty}>
+              {dirty ? "Save attendance" : "All changes saved"}
+            </PrimaryButton>
           </div>
         </div>
       </Card>

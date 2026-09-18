@@ -31,7 +31,7 @@
 //         </div>
 //       </div>
 
-//       <div className="flex flex-wrap gap-4 mb-6">
+//       <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
 //         <StatCard icon={BookOpen} label="My Courses" value="4" sub="Active Courses" tint="purple" />
 //         <StatCard icon={Video} label="Live Classes" value="2" sub="Today's Classes" tint="green" />
 //         <StatCard icon={ClipboardList} label="Assignments" value="6" sub="Pending to Review" tint="orange" />
@@ -43,7 +43,7 @@
 //         <Card className="lg:col-span-1 p-5">
 //           <div className="flex items-center justify-between mb-4">
 //             <h2 className="font-semibold text-gray-900">My Courses</h2>
-//             <a href="/courses" className="text-sm text-brand-600 font-medium hover:underline">View All</a>
+//             <a href="/courses" className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline">View All</a>
 //           </div>
 //           <div className="space-y-4">
 //             {courses.slice(0, 4).map((c) => (
@@ -58,7 +58,7 @@
 //               </div>
 //             ))}
 //           </div>
-//           <a href="/courses" className="block text-center text-sm text-brand-600 font-medium mt-4 hover:underline">
+//           <a href="/courses" className="block text-center text-sm text-brand-600 font-medium mt-4 pt-3 border-t border-gray-100 hover:text-brand-700 transition-colors">
 //             View All Courses →
 //           </a>
 //         </Card>
@@ -66,7 +66,7 @@
 //         <Card className="lg:col-span-1 p-5">
 //           <div className="flex items-center justify-between mb-4">
 //             <h2 className="font-semibold text-gray-900">Today's Schedule</h2>
-//             <a href="/live-classes" className="text-sm text-brand-600 font-medium hover:underline">View Calendar</a>
+//             <a href="/live-classes" className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline">View Calendar</a>
 //           </div>
 //           <div className="space-y-4">
 //             {todaysSchedule.map((s) => (
@@ -90,7 +90,7 @@
 //               </div>
 //             ))}
 //           </div>
-//           <a href="/live-classes" className="block text-center text-sm text-brand-600 font-medium mt-4 hover:underline">
+//           <a href="/live-classes" className="block text-center text-sm text-brand-600 font-medium mt-4 pt-3 border-t border-gray-100 hover:text-brand-700 transition-colors">
 //             View Full Schedule →
 //           </a>
 //         </Card>
@@ -98,7 +98,7 @@
 //         <Card className="lg:col-span-1 p-5">
 //           <div className="flex items-center justify-between mb-4">
 //             <h2 className="font-semibold text-gray-900">Pending Assignments</h2>
-//             <a href="/assignments" className="text-sm text-brand-600 font-medium hover:underline">View All</a>
+//             <a href="/assignments" className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline">View All</a>
 //           </div>
 //           <div className="space-y-4">
 //             {pendingAssignments.map((a) => (
@@ -118,7 +118,7 @@
 //               </div>
 //             ))}
 //           </div>
-//           <a href="/assignments" className="block text-center text-sm text-brand-600 font-medium mt-4 hover:underline">
+//           <a href="/assignments" className="block text-center text-sm text-brand-600 font-medium mt-4 pt-3 border-t border-gray-100 hover:text-brand-700 transition-colors">
 //             View All Assignments →
 //           </a>
 //         </Card>
@@ -128,7 +128,7 @@
 //         <Card className="lg:col-span-2 p-5">
 //           <div className="flex items-center justify-between mb-4">
 //             <h2 className="font-semibold text-gray-900">Recent Announcements</h2>
-//             <a href="/announcements" className="text-sm text-brand-600 font-medium hover:underline">View All</a>
+//             <a href="/announcements" className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline">View All</a>
 //           </div>
 //           <div className="divide-y divide-gray-100">
 //             {announcements.map((a) => (
@@ -188,7 +188,7 @@ import {
   Dot,
   CheckCheck,
 } from "lucide-react";
-import { StatCard, Card, Badge } from "../components/ui";
+import { StatCard, Card, Badge, ProgressBar, SectionHeader, Avatar } from "../components/ui";
 import {
   courses,
   announcements as seedAnnouncements,
@@ -282,7 +282,7 @@ function WeekCalendar({ selected, onSelect, now, eventsByDay }) {
       <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => shiftWeek(-1)}
-          className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
           aria-label="Previous week"
         >
           <ChevronLeft size={16} />
@@ -292,7 +292,7 @@ function WeekCalendar({ selected, onSelect, now, eventsByDay }) {
         </p>
         <button
           onClick={() => shiftWeek(1)}
-          className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
           aria-label="Next week"
         >
           <ChevronRight size={16} />
@@ -310,9 +310,9 @@ function WeekCalendar({ selected, onSelect, now, eventsByDay }) {
               onClick={() => onSelect(d)}
               className={`flex flex-col items-center py-1.5 rounded-lg text-xs transition-colors ${
                 isSelected
-                  ? "bg-brand-600 text-white"
+                  ? "bg-brand-600 text-white shadow-sm"
                   : isToday
-                  ? "bg-brand-50 text-brand-700"
+                  ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200"
                   : "text-gray-500 hover:bg-gray-100"
               }`}
             >
@@ -369,15 +369,15 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Faculty Dashboard</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Faculty Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">
             Welcome back, <span className="text-brand-600 font-medium">{faculty.name}</span>
           </p>
         </div>
-        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-          <CalendarDays size={15} />
+        <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-100 shadow-card rounded-xl px-3.5 py-2">
+          <CalendarDays size={15} className="text-brand-500" />
           {now.toLocaleDateString("en-IN", {
             weekday: "long",
             day: "2-digit",
@@ -387,14 +387,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
         {stats.map((s) => (
           <Link
             key={s.label}
             to={s.to}
-            className="flex-1 min-w-[160px] rounded-2xl transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+            className="group flex-1 min-w-[160px] rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
           >
-            <StatCard icon={s.icon} label={s.label} value={s.value} sub={s.sub} tint={s.tint} />
+            <StatCard icon={s.icon} label={s.label} value={s.value} sub={s.sub} tint={s.tint} interactive />
           </Link>
         ))}
       </div>
@@ -402,18 +402,20 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* My Courses */}
         <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">My Courses</h2>
-            <Link to="/courses" className="text-sm text-brand-600 font-medium hover:underline">
-              View All
-            </Link>
-          </div>
+          <SectionHeader
+            title="My Courses"
+            action={
+              <Link to="/courses" className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline">
+                View All
+              </Link>
+            }
+          />
           <div className="space-y-4">
             {courses.slice(0, 4).map((c) => (
               <Link
                 key={c.id}
                 to="/courses"
-                className="flex items-center gap-3 rounded-xl -mx-2 px-2 py-1.5 hover:bg-gray-50"
+                className="flex items-center gap-3 rounded-xl -mx-2 px-2 py-2 hover:bg-gray-50 transition-colors"
               >
                 <img src={c.image} alt={c.title} className="w-12 h-12 rounded-lg object-cover" />
                 <div className="flex-1 min-w-0">
@@ -427,7 +429,7 @@ export default function Dashboard() {
           </div>
           <Link
             to="/courses"
-            className="block text-center text-sm text-brand-600 font-medium mt-4 hover:underline"
+            className="block text-center text-sm text-brand-600 font-medium mt-4 pt-3 border-t border-gray-100 hover:text-brand-700 transition-colors"
           >
             View All Courses
           </Link>
@@ -444,7 +446,7 @@ export default function Dashboard() {
             {!isViewingToday && (
               <button
                 onClick={() => setSelectedDate(new Date())}
-                className="text-sm text-brand-600 font-medium hover:underline"
+                className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline"
               >
                 Back to today
               </button>
@@ -508,7 +510,7 @@ export default function Dashboard() {
 
           <Link
             to="/live-classes"
-            className="block text-center text-sm text-brand-600 font-medium mt-4 hover:underline"
+            className="block text-center text-sm text-brand-600 font-medium mt-4 pt-3 border-t border-gray-100 hover:text-brand-700 transition-colors"
           >
             View Full Schedule
           </Link>
@@ -516,12 +518,14 @@ export default function Dashboard() {
 
         {/* Pending assignments */}
         <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">Pending Assignments</h2>
-            <Link to="/assignments" className="text-sm text-brand-600 font-medium hover:underline">
-              View All
-            </Link>
-          </div>
+          <SectionHeader
+            title="Pending Assignments"
+            action={
+              <Link to="/assignments" className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline">
+                View All
+              </Link>
+            }
+          />
           <div className="space-y-4">
             {pendingAssignments.map((a) => {
               const left = daysUntil(a.due, now);
@@ -532,7 +536,7 @@ export default function Dashboard() {
                 <Link
                   key={a.id}
                   to="/assignments"
-                  className="flex items-start gap-3 rounded-xl -mx-2 px-2 py-1.5 hover:bg-gray-50"
+                  className="flex items-start gap-3 rounded-xl -mx-2 px-2 py-2 hover:bg-gray-50 transition-colors"
                 >
                   <div className="w-9 h-9 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center shrink-0">
                     <ClipboardList size={16} />
@@ -541,12 +545,7 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-gray-900">{a.title}</p>
                     <p className="text-xs text-gray-500">{a.meta}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-brand-500 rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                      <ProgressBar value={pct} className="flex-1" />
                       <span className="text-[11px] text-gray-400 shrink-0">{a.submitted}</span>
                     </div>
                   </div>
@@ -567,7 +566,7 @@ export default function Dashboard() {
           </div>
           <Link
             to="/assignments"
-            className="block text-center text-sm text-brand-600 font-medium mt-4 hover:underline"
+            className="block text-center text-sm text-brand-600 font-medium mt-4 pt-3 border-t border-gray-100 hover:text-brand-700 transition-colors"
           >
             View All Assignments
           </Link>
@@ -581,7 +580,7 @@ export default function Dashboard() {
             <h2 className="font-semibold text-gray-900">
               Recent Announcements
               {unreadCount > 0 && (
-                <span className="ml-2 text-[11px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full align-middle">
+                <span className="ml-2 text-[11px] font-semibold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full align-middle">
                   {unreadCount} unread
                 </span>
               )}
@@ -589,12 +588,12 @@ export default function Dashboard() {
             {unreadCount > 0 ? (
               <button
                 onClick={() => setAnnouncements((list) => list.map((a) => ({ ...a, read: true })))}
-                className="flex items-center gap-1.5 text-sm text-brand-600 font-medium hover:underline"
+                className="flex items-center gap-1.5 text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline"
               >
                 <CheckCheck size={15} /> Mark all read
               </button>
             ) : (
-              <Link to="/announcements" className="text-sm text-brand-600 font-medium hover:underline">
+              <Link to="/announcements" className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline">
                 View All
               </Link>
             )}
@@ -608,7 +607,7 @@ export default function Dashboard() {
                     list.map((x) => (x.id === a.id ? { ...x, read: true } : x))
                   )
                 }
-                className="w-full flex items-start gap-3 py-3 text-left first:pt-0 last:pb-0 hover:bg-gray-50 rounded-xl px-2 -mx-2"
+                className="w-full flex items-start gap-3 py-3 text-left hover:bg-gray-50 transition-colors px-2 -mx-2 first:rounded-t-xl last:rounded-b-xl"
               >
                 <div
                   className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
@@ -636,18 +635,16 @@ export default function Dashboard() {
 
         {/* Profile */}
         <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">My Profile</h2>
-            <Link to="/profile" className="text-sm text-brand-600 font-medium hover:underline">
-              Edit
-            </Link>
-          </div>
+          <SectionHeader
+            title="My Profile"
+            action={
+              <Link to="/profile" className="text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline">
+                Edit
+              </Link>
+            }
+          />
           <Link to="/profile" className="flex items-center gap-3">
-            <img
-              src="https://i.pravatar.cc/100?img=47"
-              alt={faculty.name}
-              className="w-14 h-14 rounded-full object-cover"
-            />
+            <Avatar src="https://i.pravatar.cc/100?img=47" name={faculty.name} size={56} ring />
             <div>
               <p className="text-sm font-semibold text-brand-700">{faculty.name}</p>
               <p className="text-xs text-gray-500">{faculty.role}</p>
@@ -659,13 +656,13 @@ export default function Dashboard() {
             <p>Phone: {faculty.phone}</p>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3 text-center">
-            <div>
-              <p className="text-lg font-bold text-gray-900">{activeCourses.length}</p>
-              <p className="text-[11px] text-gray-400">Active courses</p>
+            <div className="bg-gray-50 rounded-xl py-3">
+              <p className="text-lg font-bold text-gray-900 tabular-nums">{activeCourses.length}</p>
+              <p className="text-[11px] text-gray-500">Active courses</p>
             </div>
-            <div>
-              <p className="text-lg font-bold text-gray-900">{todayEvents.length}</p>
-              <p className="text-[11px] text-gray-400">Classes today</p>
+            <div className="bg-gray-50 rounded-xl py-3">
+              <p className="text-lg font-bold text-gray-900 tabular-nums">{todayEvents.length}</p>
+              <p className="text-[11px] text-gray-500">Classes today</p>
             </div>
           </div>
         </Card>

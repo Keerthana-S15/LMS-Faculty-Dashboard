@@ -99,7 +99,7 @@ import {
   Copy,
   Trash2,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Card } from "../components/ui";
+import { PageHeader, PrimaryButton, SearchInput, Select, Card, Notice, Tabs, EmptyState, IconButton } from "../components/ui";
 
 /* ------------------------------------------------------------------
    Sample data — real Date objects so the tabs and countdowns work.
@@ -262,30 +262,24 @@ function RowMenu({ onEdit, onCopyLink, onCancel }) {
 
   return (
     <div className="relative shrink-0" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label="More actions"
-        className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-      >
-        <MoreVertical size={16} />
-      </button>
+      <IconButton icon={MoreVertical} label="More actions" onClick={() => setOpen((v) => !v)} />
       {open && (
-        <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm z-20">
+        <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
           <button
             onClick={() => { setOpen(false); onEdit(); }}
-            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Pencil size={14} /> Edit class
           </button>
           <button
             onClick={() => { setOpen(false); onCopyLink(); }}
-            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Copy size={14} /> Copy join link
           </button>
           <button
             onClick={() => { setOpen(false); onCancel(); }}
-            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-rose-50 text-rose-600"
+            className="w-full flex items-center gap-2 px-4 py-2 text-rose-600 hover:bg-rose-50 transition-colors"
           >
             <Trash2 size={14} /> Cancel class
           </button>
@@ -373,28 +367,7 @@ export default function LiveClasses() {
         }
       />
 
-      <div className="flex gap-6 border-b border-gray-200 mb-5 overflow-x-auto scrollbar-none">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`pb-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
-              tab === t.key
-                ? "border-brand-600 text-brand-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t.label}
-            <span
-              className={`ml-2 text-[11px] px-1.5 py-0.5 rounded-full ${
-                tab === t.key ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {countFor(t.key)}
-            </span>
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} count={countFor} className="mb-5" />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <SearchInput
@@ -412,29 +385,23 @@ export default function LiveClasses() {
         </Select>
       </div>
 
-      {notice && (
-        <div className="mb-4 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="divide-y divide-gray-100">
         {visible.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mx-auto mb-3">
-              <CalendarX size={24} />
-            </div>
-            <p className="text-sm font-medium text-gray-800">
-              {query || course !== "all"
+          <EmptyState
+            icon={<CalendarX size={24} />}
+            title={
+              query || course !== "all"
                 ? "No classes match your filters"
-                : `No ${TABS.find((t) => t.key === tab).label.toLowerCase()} right now`}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {query || course !== "all"
+                : `No ${TABS.find((t) => t.key === tab).label.toLowerCase()} right now`
+            }
+            description={
+              query || course !== "all"
                 ? "Clear the search or pick a different course."
-                : "Schedule a class and it will appear here for your students."}
-            </p>
-          </div>
+                : "Schedule a class and it will appear here for your students."
+            }
+          />
         ) : (
           visible.map((c) => {
             const pill = statusLabel(c, now);
@@ -442,16 +409,28 @@ export default function LiveClasses() {
             return (
               <div
                 key={c.id}
-                className="flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-3 p-4 hover:bg-gray-50/70"
+                className="flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-3 p-4 transition-colors hover:bg-brand-50/40"
               >
-                <div className="w-16 text-center shrink-0">
-                  <p className="text-xl font-bold text-gray-900 leading-tight">
+                <div
+                  className={`w-16 py-2 rounded-xl text-center shrink-0 ring-1 ${
+                    pill.tone === "live"
+                      ? "bg-emerald-50 ring-emerald-100"
+                      : pill.tone === "muted"
+                      ? "bg-gray-50 ring-gray-100"
+                      : "bg-brand-50 ring-brand-100"
+                  }`}
+                >
+                  <p
+                    className={`text-xl font-bold leading-tight tabular-nums ${
+                      pill.tone === "muted" ? "text-gray-500" : "text-gray-900"
+                    }`}
+                  >
                     {String(c.startAt.getDate()).padStart(2, "0")}
                   </p>
-                  <p className="text-[11px] font-medium text-gray-400">
+                  <p className="text-[11px] font-semibold text-gray-500 tracking-wide">
                     {MONTHS[c.startAt.getMonth()]}
                   </p>
-                  <p className="text-[11px] text-gray-400">{DAYS[c.startAt.getDay()]}</p>
+                  <p className="text-[10px] text-gray-400">{DAYS[c.startAt.getDay()]}</p>
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -470,8 +449,14 @@ export default function LiveClasses() {
                 </div>
 
                 <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${toneClass[pill.tone]}`}
+                  className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${toneClass[pill.tone]}`}
                 >
+                  {pill.tone === "live" && (
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                  )}
                   {pill.text}
                 </span>
 
@@ -479,7 +464,11 @@ export default function LiveClasses() {
                   onClick={() => handleJoin(c)}
                   disabled={!joinable}
                   title={joinable ? "Join the class" : "Opens 15 minutes before the class starts"}
-                  className="border border-brand-200 text-brand-600 text-sm font-medium px-4 py-1.5 rounded-lg hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent shrink-0"
+                  className={`text-sm font-medium px-4 py-2 rounded-xl shrink-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    pill.tone === "live"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                      : "border border-brand-200 bg-white text-brand-700 hover:bg-brand-50 disabled:hover:bg-white"
+                  }`}
                 >
                   {statusOf(c, now) === "completed" ? "View" : "Join"}
                 </button>

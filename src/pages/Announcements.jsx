@@ -70,7 +70,7 @@ import {
   Users,
   CalendarClock,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Card } from "../components/ui";
+import { PageHeader, PrimaryButton, SearchInput, Select, Card, Notice, Tabs, EmptyState, SecondaryButton, inputClass, labelClass } from "../components/ui";
 import { announcements as seedAnnouncements } from "../data/mockData";
 
 const AUDIENCES = [
@@ -200,21 +200,20 @@ function AnnouncementModal({ initial, onClose, onSave }) {
     onClose();
   }
 
-  const field =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400";
-  const label = "block text-sm text-gray-600 mb-1.5";
+  const field = inputClass;
+  const label = labelClass;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">
             {isEdit ? "Edit announcement" : "New announcement"}
           </h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -223,7 +222,7 @@ function AnnouncementModal({ initial, onClose, onSave }) {
           <div>
             <label className={label}>Title</label>
             <input autoFocus className={field} value={form.title} onChange={set("title")} placeholder="Practical Exam Schedule - June" />
-            {errors.title && <p className="text-xs text-rose-600 mt-1">{errors.title}</p>}
+            {errors.title && <p className="text-xs text-rose-600 mt-1.5">{errors.title}</p>}
           </div>
 
           <div>
@@ -235,7 +234,7 @@ function AnnouncementModal({ initial, onClose, onSave }) {
               onChange={set("body")}
               placeholder="What do students need to know?"
             />
-            {errors.body && <p className="text-xs text-rose-600 mt-1">{errors.body}</p>}
+            {errors.body && <p className="text-xs text-rose-600 mt-1.5">{errors.body}</p>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -265,7 +264,7 @@ function AnnouncementModal({ initial, onClose, onSave }) {
               value={toInputValue(new Date(form.postedAt))}
               onChange={(e) => setForm((f) => ({ ...f, postedAt: new Date(e.target.value) }))}
             />
-            {errors.postedAt && <p className="text-xs text-rose-600 mt-1">{errors.postedAt}</p>}
+            {errors.postedAt && <p className="text-xs text-rose-600 mt-1.5">{errors.postedAt}</p>}
           </div>
 
           <label className="flex items-center gap-2 text-sm text-gray-600">
@@ -282,7 +281,7 @@ function AnnouncementModal({ initial, onClose, onSave }) {
         <div className="flex flex-wrap justify-end gap-3 px-6 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
           >
             Cancel
           </button>
@@ -300,7 +299,7 @@ function AnnouncementModal({ initial, onClose, onSave }) {
           </button>
           <button
             onClick={() => submit("Published")}
-            className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors text-white text-sm font-medium"
           >
             Publish now
           </button>
@@ -328,28 +327,28 @@ function RowMenu({ item, onEdit, onTogglePin, onToggleStatus, onDuplicate, onDel
     <div className="relative shrink-0" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
         aria-label="More actions"
       >
         <MoreVertical size={16} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm z-20">
-          <button onClick={() => { setOpen(false); onEdit(); }} className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700">
+        <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
+          <button onClick={() => { setOpen(false); onEdit(); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
             <Pencil size={14} /> Edit
           </button>
-          <button onClick={() => { setOpen(false); onTogglePin(); }} className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700">
+          <button onClick={() => { setOpen(false); onTogglePin(); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
             {item.pinned ? <PinOff size={14} /> : <Pin size={14} />}
             {item.pinned ? "Unpin" : "Pin to top"}
           </button>
-          <button onClick={() => { setOpen(false); onToggleStatus(); }} className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700">
+          <button onClick={() => { setOpen(false); onToggleStatus(); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
             {published ? <Undo2 size={14} /> : <Send size={14} />}
             {published ? "Move to draft" : "Publish now"}
           </button>
-          <button onClick={() => { setOpen(false); onDuplicate(); }} className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700">
+          <button onClick={() => { setOpen(false); onDuplicate(); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
             <Copy size={14} /> Duplicate
           </button>
-          <button onClick={() => { setOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-rose-50 text-rose-600">
+          <button onClick={() => { setOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition-colors">
             <Trash2 size={14} /> Delete
           </button>
         </div>
@@ -444,28 +443,7 @@ export default function Announcements() {
         }
       />
 
-      <div className="flex gap-6 border-b border-gray-200 mb-5 overflow-x-auto scrollbar-none">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`pb-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
-              tab === t.key
-                ? "border-brand-600 text-brand-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t.label}
-            <span
-              className={`ml-2 text-[11px] px-1.5 py-0.5 rounded-full ${
-                tab === t.key ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {countFor(t.key)}
-            </span>
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} count={countFor} className="mb-5" />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <SearchInput
@@ -481,18 +459,14 @@ export default function Announcements() {
         </Select>
       </div>
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="divide-y divide-gray-100">
         {visible.map((a) => {
           const isOpen = expanded.includes(a.id);
           const long = a.body.length > 120;
           return (
-            <div key={a.id} className={`flex items-start gap-4 p-5 ${a.pinned ? "bg-brand-50/40" : ""}`}>
+            <div key={a.id} className={`flex items-start gap-4 p-5 transition-colors hover:bg-gray-50/70 ${a.pinned ? "bg-brand-50/40 border-l-2 border-l-brand-400" : ""}`}>
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                   a.priority === "Urgent"
@@ -528,7 +502,7 @@ export default function Announcements() {
                   {long && (
                     <button
                       onClick={() => toggleExpand(a.id)}
-                      className="ml-1.5 text-brand-600 font-medium hover:underline"
+                      className="ml-1.5 text-brand-600 font-medium hover:text-brand-700 hover:underline"
                     >
                       {isOpen ? "Show less" : "Read more"}
                     </button>
@@ -573,34 +547,20 @@ export default function Announcements() {
         })}
 
         {visible.length === 0 && (
-          <div className="p-12 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mx-auto mb-3">
-              {items.length === 0 ? <Megaphone size={24} /> : <SearchX size={24} />}
-            </div>
-            <p className="text-sm font-medium text-gray-800">
-              {items.length === 0 ? "No announcements yet" : "Nothing matches your filters"}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {items.length === 0
+          <EmptyState
+            icon={items.length === 0 ? <Megaphone size={24} /> : <SearchX size={24} />}
+            title={items.length === 0 ? "No announcements yet" : "Nothing matches your filters"}
+            description={
+              items.length === 0
                 ? "Post an update and your students will see it here."
-                : "Try a different tab, audience or search term."}
-            </p>
-            {items.length === 0 ? (
-              <button
-                onClick={() => setEditing({})}
-                className="mt-4 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl"
-              >
-                <Plus size={15} /> New Announcement
-              </button>
-            ) : (
-              <button
-                onClick={() => { setQuery(""); setAudience("all"); setTab("all"); }}
-                className="mt-4 text-sm font-medium text-brand-600 hover:underline"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
+                : "Try a different tab, audience or search term."
+            }
+            action={
+              items.length === 0
+                ? (<PrimaryButton icon={Plus} onClick={() => setEditing({})}>New Announcement</PrimaryButton>)
+                : (<SecondaryButton onClick={() => { setQuery(""); setAudience("all"); setTab("all"); }}>Clear filters</SecondaryButton>)
+            }
+          />
         )}
       </Card>
 

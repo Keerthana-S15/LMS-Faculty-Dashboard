@@ -21,7 +21,7 @@
 //         action={<PrimaryButton icon={Plus}>Create Quiz</PrimaryButton>}
 //       />
 
-//       <div className="flex flex-wrap gap-4 mb-6">
+//       <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
 //         <StatCard icon={ClipboardList} label="Total Quizzes" value={total} tint="purple" />
 //         <StatCard icon={ClipboardCheck} label="Published" value={published} tint="green" />
 //         <StatCard icon={Clock} label="Scheduled" value={scheduled} tint="orange" />
@@ -46,33 +46,33 @@
 //       <Card className="overflow-x-auto">
 //         <table className="w-full text-sm">
 //           <thead>
-//             <tr className="text-left text-gray-500 border-b border-gray-100">
-//               <th className="font-medium py-3 px-5">Quiz Title</th>
-//               <th className="font-medium py-3 px-5">Course</th>
-//               <th className="font-medium py-3 px-5">Questions</th>
-//               <th className="font-medium py-3 px-5">Total Marks</th>
-//               <th className="font-medium py-3 px-5">Duration</th>
-//               <th className="font-medium py-3 px-5">Status</th>
-//               <th className="font-medium py-3 px-5">Actions</th>
+//             <tr className={tableHeadRowClass}>
+//               <th className={tableHeadCellClass}>Quiz Title</th>
+//               <th className={tableHeadCellClass}>Course</th>
+//               <th className={tableHeadCellClass}>Questions</th>
+//               <th className={tableHeadCellClass}>Total Marks</th>
+//               <th className={tableHeadCellClass}>Duration</th>
+//               <th className={tableHeadCellClass}>Status</th>
+//               <th className={tableHeadCellClass}>Actions</th>
 //             </tr>
 //           </thead>
 //           <tbody className="divide-y divide-gray-100">
 //             {filtered.map((q) => (
-//               <tr key={q.id} className="hover:bg-gray-50">
-//                 <td className="py-3 px-5">
+//               <tr key={q.id} className={tableRowClass}>
+//                 <td className="py-3.5 px-5">
 //                   <p className="font-medium text-gray-900">{q.title}</p>
 //                   <p className="text-xs text-gray-400">{q.meta}</p>
 //                 </td>
-//                 <td className="py-3 px-5 text-gray-600">{q.course}</td>
-//                 <td className="py-3 px-5 text-gray-600">{q.questions}</td>
-//                 <td className="py-3 px-5 text-gray-600">{q.marks}</td>
-//                 <td className="py-3 px-5 text-gray-600">{q.duration}</td>
-//                 <td className="py-3 px-5"><Badge status={q.status} /></td>
-//                 <td className="py-3 px-5">
+//                 <td className="py-3.5 px-5 text-gray-600">{q.course}</td>
+//                 <td className="py-3.5 px-5 text-gray-600">{q.questions}</td>
+//                 <td className="py-3.5 px-5 text-gray-600">{q.marks}</td>
+//                 <td className="py-3.5 px-5 text-gray-600">{q.duration}</td>
+//                 <td className="py-3.5 px-5"><Badge status={q.status} /></td>
+//                 <td className="py-3.5 px-5">
 //                   <div className="flex items-center gap-1 text-gray-400">
-//                     <button className="p-1.5 hover:text-brand-600"><Eye size={16} /></button>
-//                     <button className="p-1.5 hover:text-brand-600"><Pencil size={15} /></button>
-//                     <button className="p-1.5 hover:text-gray-600"><MoreVertical size={16} /></button>
+//                     <button className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors"><Eye size={16} /></button>
+//                     <button className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors"><Pencil size={15} /></button>
+//                     <button className="p-1.5 rounded-lg hover:text-gray-700 hover:bg-gray-100 transition-colors"><MoreVertical size={16} /></button>
 //                   </div>
 //                 </td>
 //               </tr>
@@ -107,7 +107,7 @@ import {
   ArrowUpDown,
   SearchX,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, StatCard } from "../components/ui";
+import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, StatCard, Notice, EmptyState, SecondaryButton, StatButton, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass } from "../components/ui";
 import { quizzes as seedQuizzes } from "../data/mockData";
 
 const STATUSES = ["Published", "Scheduled", "Draft"];
@@ -207,19 +207,18 @@ function QuizModal({ initial, onClose, onSave }) {
     onClose();
   }
 
-  const field =
-    "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400";
-  const label = "block text-sm text-gray-600 mb-1.5";
+  const field = inputClass;
+  const label = labelClass;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">{isEdit ? "Edit quiz" : "Create quiz"}</h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -249,7 +248,7 @@ function QuizModal({ initial, onClose, onSave }) {
               <div>
                 <label className={label}>Quiz title</label>
                 <input autoFocus className={field} value={form.title} onChange={set("title")} placeholder="Anatomy Quiz - Unit 1" />
-                {errors.title && <p className="text-xs text-rose-600 mt-1">{errors.title}</p>}
+                {errors.title && <p className="text-xs text-rose-600 mt-1.5">{errors.title}</p>}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -271,7 +270,7 @@ function QuizModal({ initial, onClose, onSave }) {
                 <div>
                   <label className={label}>Duration (minutes)</label>
                   <input className={field} value={form.durationMins} onChange={set("durationMins")} inputMode="numeric" />
-                  {errors.durationMins && <p className="text-xs text-rose-600 mt-1">{errors.durationMins}</p>}
+                  {errors.durationMins && <p className="text-xs text-rose-600 mt-1.5">{errors.durationMins}</p>}
                 </div>
                 <div>
                   <label className={label}>Status</label>
@@ -280,7 +279,7 @@ function QuizModal({ initial, onClose, onSave }) {
                       <option key={s}>{s}</option>
                     ))}
                   </select>
-                  {errors.status && <p className="text-xs text-rose-600 mt-1">{errors.status}</p>}
+                  {errors.status && <p className="text-xs text-rose-600 mt-1.5">{errors.status}</p>}
                 </div>
               </div>
 
@@ -394,20 +393,20 @@ function QuizModal({ initial, onClose, onSave }) {
           )}
         </div>
 
-        <div className="flex justify-between items-center gap-3 px-6 py-4 border-t border-gray-100">
+        <div className="flex justify-between items-center gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
           <span className="text-xs text-gray-400">
             {questionCount} questions · {totalMarks} marks
           </span>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
-              className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium"
+              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors text-white text-sm font-medium"
             >
               {isEdit ? "Save changes" : "Create quiz"}
             </button>
@@ -422,9 +421,9 @@ function QuizModal({ initial, onClose, onSave }) {
 
 function PreviewModal({ quiz, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
@@ -434,7 +433,7 @@ function PreviewModal({ quiz, onClose }) {
               {quiz.course} · {quiz.meta || "All batches"} · {quiz.duration} · {quiz.marks} marks
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -492,29 +491,29 @@ function RowMenu({ quiz, onDuplicate, onToggleStatus, onDelete }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="p-1.5 hover:text-gray-600"
+        className="p-1.5 rounded-lg hover:text-gray-700 hover:bg-gray-100 transition-colors"
         aria-label="More actions"
       >
         <MoreVertical size={16} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm z-20">
+        <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
           <button
             onClick={() => { setOpen(false); onToggleStatus(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             {published ? <Undo2 size={14} /> : <Send size={14} />}
             {published ? "Move to draft" : "Publish now"}
           </button>
           <button
             onClick={() => { setOpen(false); onDuplicate(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <Copy size={14} /> Duplicate
           </button>
           <button
             onClick={() => { setOpen(false); onDelete(); }}
-            className="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-rose-50 text-rose-600"
+            className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition-colors"
           >
             <Trash2 size={14} /> Delete
           </button>
@@ -621,14 +620,14 @@ export default function Quizzes() {
   }
 
   const SortHeader = ({ label, sortKey, className = "" }) => (
-    <th className={`font-medium py-3 px-5 ${className}`}>
+    <th className={`${tableHeadCellClass} ${className}`}>
       <button
         onClick={() =>
           setSort((s) =>
             s.key === sortKey ? { key: sortKey, dir: s.dir === "asc" ? "desc" : "asc" } : { key: sortKey, dir: "asc" }
           )
         }
-        className={`inline-flex items-center gap-1 hover:text-gray-700 ${
+        className={`inline-flex items-center gap-1 rounded-md uppercase tracking-wider transition-colors hover:text-gray-800 ${
           sort.key === sortKey ? "text-brand-600" : ""
         }`}
       >
@@ -650,19 +649,19 @@ export default function Quizzes() {
         }
       />
 
-      <div className="flex flex-wrap gap-4 mb-6">
-        <button onClick={() => setStatus("all")} className="flex-1 min-w-[160px] text-left rounded-2xl">
-          <StatCard icon={ClipboardList} label="Total Quizzes" value={counts.total} tint="purple" />
-        </button>
-        <button onClick={() => setStatus("Published")} className="flex-1 min-w-[160px] text-left rounded-2xl">
-          <StatCard icon={ClipboardCheck} label="Published" value={counts.published} tint="green" />
-        </button>
-        <button onClick={() => setStatus("Scheduled")} className="flex-1 min-w-[160px] text-left rounded-2xl">
-          <StatCard icon={Clock} label="Scheduled" value={counts.scheduled} tint="orange" />
-        </button>
-        <button onClick={() => setStatus("Draft")} className="flex-1 min-w-[160px] text-left rounded-2xl">
-          <StatCard icon={FileX} label="Drafts" value={counts.drafts} tint="red" />
-        </button>
+      <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
+        <StatButton onClick={() => setStatus("all")} active={status === "all"}>
+          <StatCard icon={ClipboardList} label="Total Quizzes" value={counts.total} tint="purple" interactive active={status === "all"} />
+        </StatButton>
+        <StatButton onClick={() => setStatus("Published")} active={status === "Published"}>
+          <StatCard icon={ClipboardCheck} label="Published" value={counts.published} tint="green" interactive active={status === "Published"} />
+        </StatButton>
+        <StatButton onClick={() => setStatus("Scheduled")} active={status === "Scheduled"}>
+          <StatCard icon={Clock} label="Scheduled" value={counts.scheduled} tint="orange" interactive active={status === "Scheduled"} />
+        </StatButton>
+        <StatButton onClick={() => setStatus("Draft")} active={status === "Draft"}>
+          <StatCard icon={FileX} label="Drafts" value={counts.drafts} tint="red" interactive active={status === "Draft"} />
+        </StatButton>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -681,45 +680,41 @@ export default function Quizzes() {
         </Select>
       </div>
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-100">
+            <tr className={tableHeadRowClass}>
               <SortHeader label="Quiz Title" sortKey="title" />
               <SortHeader label="Course" sortKey="course" />
               <SortHeader label="Questions" sortKey="questions" />
               <SortHeader label="Total Marks" sortKey="marks" />
               <SortHeader label="Duration" sortKey="duration" />
               <SortHeader label="Status" sortKey="status" />
-              <th className="font-medium py-3 px-5">Actions</th>
+              <th className={tableHeadCellClass}>Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {visible.map((q) => (
-              <tr key={q.id} className="hover:bg-gray-50">
-                <td className="py-3 px-5">
+              <tr key={q.id} className={tableRowClass}>
+                <td className="py-3.5 px-5">
                   <button onClick={() => setPreview(q)} className="text-left">
-                    <p className="font-medium text-gray-900 hover:text-brand-600">{q.title}</p>
+                    <p className="font-medium text-gray-900 hover:text-brand-600 transition-colors">{q.title}</p>
                     <p className="text-xs text-gray-400">{q.meta}</p>
                   </button>
                 </td>
-                <td className="py-3 px-5 text-gray-600">{q.course}</td>
-                <td className="py-3 px-5 text-gray-600">{q.questions}</td>
-                <td className="py-3 px-5 text-gray-600">{q.marks}</td>
-                <td className="py-3 px-5 text-gray-600">{q.duration}</td>
-                <td className="py-3 px-5"><Badge status={q.status} /></td>
-                <td className="py-3 px-5">
+                <td className="py-3.5 px-5 text-gray-600">{q.course}</td>
+                <td className="py-3.5 px-5 text-gray-600">{q.questions}</td>
+                <td className="py-3.5 px-5 text-gray-600">{q.marks}</td>
+                <td className="py-3.5 px-5 text-gray-600">{q.duration}</td>
+                <td className="py-3.5 px-5"><Badge status={q.status} /></td>
+                <td className="py-3.5 px-5">
                   <div className="flex items-center gap-1 text-gray-400">
-                    <button onClick={() => setPreview(q)} className="p-1.5 hover:text-brand-600" title="Preview">
+                    <button onClick={() => setPreview(q)} className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors" title="Preview">
                       <Eye size={16} />
                     </button>
-                    <button onClick={() => setEditing(q)} className="p-1.5 hover:text-brand-600" title="Edit">
+                    <button onClick={() => setEditing(q)} className="p-1.5 rounded-lg hover:text-brand-600 hover:bg-brand-50 transition-colors" title="Edit">
                       <Pencil size={15} />
                     </button>
                     <RowMenu
@@ -736,34 +731,20 @@ export default function Quizzes() {
         </table>
 
         {visible.length === 0 && (
-          <div className="p-12 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mx-auto mb-3">
-              {quizzes.length === 0 ? <ClipboardList size={24} /> : <SearchX size={24} />}
-            </div>
-            <p className="text-sm font-medium text-gray-800">
-              {quizzes.length === 0 ? "No quizzes yet" : "No quizzes match your filters"}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {quizzes.length === 0
+          <EmptyState
+            icon={quizzes.length === 0 ? <ClipboardList size={24} /> : <SearchX size={24} />}
+            title={quizzes.length === 0 ? "No quizzes yet" : "No quizzes match your filters"}
+            description={
+              quizzes.length === 0
                 ? "Create a quiz and it will appear here."
-                : "Clear the search, course or status filter."}
-            </p>
-            {quizzes.length === 0 ? (
-              <button
-                onClick={() => setEditing({})}
-                className="mt-4 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl"
-              >
-                <Plus size={15} /> Create Quiz
-              </button>
-            ) : (
-              <button
-                onClick={() => { setQuery(""); setCourse("all"); setStatus("all"); }}
-                className="mt-4 text-sm font-medium text-brand-600 hover:underline"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
+                : "Clear the search, course or status filter."
+            }
+            action={
+              quizzes.length === 0
+                ? (<PrimaryButton icon={Plus} onClick={() => setEditing({})}>Create Quiz</PrimaryButton>)
+                : (<SecondaryButton onClick={() => { setQuery(""); setCourse("all"); setStatus("all"); }}>Clear filters</SecondaryButton>)
+            }
+          />
         )}
       </Card>
 

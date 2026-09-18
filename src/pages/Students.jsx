@@ -20,7 +20,7 @@
 //         action={<OutlineButton icon={Download}>Export</OutlineButton>}
 //       />
 
-//       <div className="flex flex-wrap gap-4 mb-6">
+//       <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
 //         <StatCard icon={Users} label="Total Students" value="128" tint="purple" />
 //         <StatCard icon={UserRound} label="Male Students" value="42" tint="blue" />
 //         <StatCard icon={Female} label="Female Students" value="86" tint="red" />
@@ -45,25 +45,25 @@
 //       <Card className="overflow-x-auto">
 //         <table className="w-full text-sm">
 //           <thead>
-//             <tr className="text-left text-gray-500 border-b border-gray-100">
-//               <th className="font-medium py-3 px-5">Student Name</th>
-//               <th className="font-medium py-3 px-5">Roll Number</th>
-//               <th className="font-medium py-3 px-5">Course</th>
-//               <th className="font-medium py-3 px-5">Batch</th>
-//               <th className="font-medium py-3 px-5">Email</th>
-//               <th className="font-medium py-3 px-5">Actions</th>
+//             <tr className={tableHeadRowClass}>
+//               <th className={tableHeadCellClass}>Student Name</th>
+//               <th className={tableHeadCellClass}>Roll Number</th>
+//               <th className={tableHeadCellClass}>Course</th>
+//               <th className={tableHeadCellClass}>Batch</th>
+//               <th className={tableHeadCellClass}>Email</th>
+//               <th className={tableHeadCellClass}>Actions</th>
 //             </tr>
 //           </thead>
 //           <tbody className="divide-y divide-gray-100">
 //             {filtered.map((s) => (
-//               <tr key={s.id} className="hover:bg-gray-50">
-//                 <td className="py-3 px-5 font-medium text-gray-900">{s.name}</td>
-//                 <td className="py-3 px-5 text-gray-600">{s.roll}</td>
-//                 <td className="py-3 px-5 text-gray-600">{s.course}</td>
-//                 <td className="py-3 px-5 text-gray-600">{s.batch}</td>
-//                 <td className="py-3 px-5 text-gray-600">{s.email}</td>
-//                 <td className="py-3 px-5">
-//                   <button className="p-1.5 text-brand-500 hover:text-brand-700">
+//               <tr key={s.id} className={tableRowClass}>
+//                 <td className="py-3.5 px-5 font-medium text-gray-900">{s.name}</td>
+//                 <td className="py-3.5 px-5 text-gray-600">{s.roll}</td>
+//                 <td className="py-3.5 px-5 text-gray-600">{s.course}</td>
+//                 <td className="py-3.5 px-5 text-gray-600">{s.batch}</td>
+//                 <td className="py-3.5 px-5 text-gray-600">{s.email}</td>
+//                 <td className="py-3.5 px-5">
+//                   <button className="p-1.5 rounded-lg text-brand-500 hover:text-brand-700 hover:bg-brand-50 transition-colors">
 //                     <Eye size={16} />
 //                   </button>
 //                 </td>
@@ -98,7 +98,7 @@ import {
   FileSpreadsheet,
   FileJson,
 } from "lucide-react";
-import { PageHeader, OutlineButton, SearchInput, Select, StatCard, Card, Badge } from "../components/ui";
+import { PageHeader, OutlineButton, SearchInput, Select, StatCard, Card, Badge, Notice, EmptyState, SecondaryButton, tableHeadRowClass, tableHeadCellClass, tableRowClass, Avatar } from "../components/ui";
 import { students as seedStudents } from "../data/mockData";
 
 const PER_PAGE = 8;
@@ -198,12 +198,12 @@ function ExportMenu({ filteredRows, allRows, onDone }) {
         Export
       </OutlineButton>
       {open && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-1 text-sm z-30">
+        <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
           <button
             onClick={() =>
               run(exportCsv, filteredRows, "filtered", (n) => `${n} students downloaded as CSV.`)
             }
-            className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <FileSpreadsheet size={15} className="text-emerald-600" />
             <span className="flex-1 text-left">
@@ -213,7 +213,7 @@ function ExportMenu({ filteredRows, allRows, onDone }) {
           </button>
           <button
             onClick={() => run(exportCsv, allRows, "all", (n) => `All ${n} students downloaded as CSV.`)}
-            className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <FileSpreadsheet size={15} className="text-emerald-600" />
             <span className="flex-1 text-left">
@@ -223,7 +223,7 @@ function ExportMenu({ filteredRows, allRows, onDone }) {
           </button>
           <button
             onClick={() => run(exportJson, filteredRows, "filtered", (n) => `${n} students downloaded as JSON.`)}
-            className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-gray-700"
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <FileJson size={15} className="text-brand-600" />
             <span className="flex-1 text-left">JSON — current view</span>
@@ -251,14 +251,14 @@ function StudentModal({ student, onClose }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-modal ring-1 ring-black/5 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Student details</h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -371,7 +371,7 @@ export default function Students() {
   const isFiltered = query || course !== "all" || batch !== "all";
 
   const SortHeader = ({ label, sortKey }) => (
-    <th className="font-medium py-3 px-5">
+    <th className={tableHeadCellClass}>
       <button
         onClick={() =>
           setSort((s) =>
@@ -380,7 +380,7 @@ export default function Students() {
               : { key: sortKey, dir: "asc" }
           )
         }
-        className={`inline-flex items-center gap-1 hover:text-gray-700 ${
+        className={`inline-flex items-center gap-1 rounded-md uppercase tracking-wider transition-colors hover:text-gray-800 ${
           sort.key === sortKey ? "text-brand-600" : ""
         }`}
       >
@@ -400,7 +400,7 @@ export default function Students() {
         }
       />
 
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
         <StatCard icon={Users} label="Total Students" value={stats.total} sub={isFiltered ? "In current view" : undefined} tint="purple" />
         <StatCard icon={UserRound} label="Male Students" value={stats.male} tint="blue" />
         <StatCard icon={UserRound} label="Female Students" value={stats.female} tint="red" />
@@ -428,51 +428,43 @@ export default function Students() {
         </Select>
       </div>
 
-      {notice && (
-        <div className="mb-5 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5">
-          {notice}
-        </div>
-      )}
+      <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-100">
+            <tr className={tableHeadRowClass}>
               <SortHeader label="Student Name" sortKey="name" />
               <SortHeader label="Roll Number" sortKey="roll" />
               <SortHeader label="Course" sortKey="course" />
               <SortHeader label="Batch" sortKey="batch" />
-              <th className="font-medium py-3 px-5">Email</th>
+              <th className={tableHeadCellClass}>Email</th>
               <SortHeader label="Status" sortKey="status" />
-              <th className="font-medium py-3 px-5">Actions</th>
+              <th className={tableHeadCellClass}>Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {pageRows.map((s) => (
-              <tr key={s.id} className="hover:bg-gray-50">
-                <td className="py-3 px-5">
+              <tr key={s.id} className={tableRowClass}>
+                <td className="py-3.5 px-5">
                   <button onClick={() => setDetail(s)} className="flex items-center gap-3 text-left">
-                    <img
-                      src={`https://i.pravatar.cc/60?u=${s.roll}`}
-                      alt=""
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                    <span className="font-medium text-gray-900 hover:text-brand-600">{s.name}</span>
+                    <Avatar src={`https://i.pravatar.cc/60?u=${s.roll}`} name={s.name} size={32} />
+                    <span className="font-medium text-gray-900 hover:text-brand-600 transition-colors">{s.name}</span>
                   </button>
                 </td>
-                <td className="py-3 px-5 text-gray-600">{s.roll}</td>
-                <td className="py-3 px-5 text-gray-600">{s.course}</td>
-                <td className="py-3 px-5 text-gray-600">{s.batch}</td>
-                <td className="py-3 px-5">
-                  <a href={`mailto:${s.email}`} className="text-gray-600 hover:text-brand-600">
+                <td className="py-3.5 px-5 text-gray-600">{s.roll}</td>
+                <td className="py-3.5 px-5 text-gray-600">{s.course}</td>
+                <td className="py-3.5 px-5 text-gray-600">{s.batch}</td>
+                <td className="py-3.5 px-5">
+                  <a href={`mailto:${s.email}`} className="text-gray-600 hover:text-brand-600 transition-colors">
                     {s.email}
                   </a>
                 </td>
-                <td className="py-3 px-5"><Badge status={s.status} /></td>
-                <td className="py-3 px-5">
+                <td className="py-3.5 px-5"><Badge status={s.status} /></td>
+                <td className="py-3.5 px-5">
                   <button
                     onClick={() => setDetail(s)}
-                    className="p-1.5 text-brand-500 hover:text-brand-700"
+                    className="p-1.5 rounded-lg text-brand-500 hover:text-brand-700 hover:bg-brand-50 transition-colors"
                     title="View student"
                   >
                     <Eye size={16} />
@@ -484,23 +476,16 @@ export default function Students() {
         </table>
 
         {filtered.length === 0 && (
-          <div className="p-12 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mx-auto mb-3">
-              <SearchX size={24} />
-            </div>
-            <p className="text-sm font-medium text-gray-800">No students match your filters</p>
-            <p className="text-sm text-gray-500 mt-1">Try a different search term, course or batch.</p>
-            <button
-              onClick={() => { setQuery(""); setCourse("all"); setBatch("all"); }}
-              className="mt-4 text-sm font-medium text-brand-600 hover:underline"
-            >
-              Clear filters
-            </button>
-          </div>
+          <EmptyState
+            icon={<SearchX size={24} />}
+            title="No students match your filters"
+            description="Try a different search term, course or batch."
+            action={<SecondaryButton onClick={() => { setQuery(""); setCourse("all"); setBatch("all"); }}>Clear filters</SecondaryButton>}
+          />
         )}
 
         {filtered.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
             <p className="text-xs text-gray-500">
               Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of{" "}
               {filtered.length}
@@ -509,7 +494,7 @@ export default function Students() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 disabled:opacity-40"
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                 aria-label="Previous page"
               >
                 <ChevronLeft size={16} />
@@ -518,8 +503,9 @@ export default function Students() {
                 <button
                   key={i}
                   onClick={() => setPage(i + 1)}
-                  className={`w-7 h-7 rounded-lg text-xs font-medium ${
-                    page === i + 1 ? "bg-brand-600 text-white" : "text-gray-500 hover:bg-gray-100"
+                  aria-current={page === i + 1 ? "page" : undefined}
+                  className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors tabular-nums ${
+                    page === i + 1 ? "bg-brand-600 text-white shadow-sm" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                   }`}
                 >
                   {i + 1}
@@ -528,7 +514,7 @@ export default function Students() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 disabled:opacity-40"
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                 aria-label="Next page"
               >
                 <ChevronRight size={16} />
