@@ -116,8 +116,10 @@ import {
   CheckCheck,
   RotateCcw,
   SearchX,
+  ListFilter,
+  X,
 } from "lucide-react";
-import { PageHeader, OutlineButton, PrimaryButton, Select, StatCard, Card, Notice, EmptyState, tableHeadRowClass, SecondaryButton, SegmentedControl } from "../components/ui";
+import { PageHeader, OutlineButton, PrimaryButton, Select, StatCard, StatButton, Card, Notice, EmptyState, tableHeadRowClass, SecondaryButton, SegmentedControl } from "../components/ui";
 import { attendance as seedAttendance, students as seedStudents } from "../data/mockData";
 
 const COURSES = [
@@ -212,6 +214,10 @@ export default function Attendance() {
   const [rows, setRows] = useState(() => buildRegister(applied.course, applied.batch, applied.date));
   const [selected, setSelected] = useState([]);
   const [view, setView] = useState("By Date");
+  // Client-side scoping of the register: which stat card is active and
+  // which session is in view. Both narrow the list without touching `rows`.
+  const [statusFilter, setStatusFilter] = useState("all"); // all | Present | Absent | Late
+  const [sessionFilter, setSessionFilter] = useState("all"); // all | s1 | s2
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -252,21 +258,50 @@ export default function Attendance() {
     setDirty(true);
   };
 
-  const allSelected = selected.length === rows.length && rows.length > 0;
-  const toggleAll = () => setSelected(allSelected ? [] : rows.map((r) => r.id));
+  // Rows in the chosen session; the stat cards count against this scope.
+  const scoped = useMemo(
+    () => (sessionFilter === "all" ? rows : rows.filter((r) => r.session === sessionFilter)),
+    [rows, sessionFilter]
+  );
+
+  // What the table shows: the session scope narrowed by the active card.
+  const visibleRows = useMemo(
+    () => (statusFilter === "all" ? scoped : scoped.filter((r) => r.status === statusFilter)),
+    [scoped, statusFilter]
+  );
+
+  const allSelected =
+    visibleRows.length > 0 && visibleRows.every((r) => selected.includes(r.id));
+  const toggleAll = () =>
+    setSelected(
+      allSelected
+        ? selected.filter((id) => !visibleRows.some((r) => r.id === id))
+        : [...new Set([...selected, ...visibleRows.map((r) => r.id)])]
+    );
   const toggleOne = (id) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const counts = useMemo(() => {
-    const total = rows.length;
+    const total = scoped.length;
     return {
       total,
-      present: rows.filter((r) => r.status === "Present").length,
-      absent: rows.filter((r) => r.status === "Absent").length,
-      late: rows.filter((r) => r.status === "Late").length,
-      unmarked: rows.filter((r) => !r.status).length,
+      present: scoped.filter((r) => r.status === "Present").length,
+      absent: scoped.filter((r) => r.status === "Absent").length,
+      late: scoped.filter((r) => r.status === "Late").length,
+      unmarked: scoped.filter((r) => !r.status).length,
     };
-  }, [rows]);
+  }, [scoped]);
+
+  const isFiltered = statusFilter !== "all" || sessionFilter !== "all";
+  const activeSession = SESSIONS.find((x) => x.id === sessionFilter);
+
+  // Clicking the active card again returns to the full list.
+  const pickStatus = (key) => setStatusFilter((cur) => (cur === key ? "all" : key));
+  const pickSession = (id) => setSessionFilter((cur) => (cur === id ? "all" : id));
+  const clearScope = () => {
+    setStatusFilter("all");
+    setSessionFilter("all");
+  };
 
   const bySession = useMemo(
     () =>
@@ -290,8 +325,12 @@ export default function Attendance() {
   }
 
   function handleMarkAllPresent() {
-    setStatus(rows.map((r) => r.id), "Present");
-    setNotice("All students marked present.");
+    // Respects the current scope, so "mark all" on the Absent view only
+    // touches those students. With no filter it marks the whole register.
+    setStatus(visibleRows.map((r) => r.id), "Present");
+    setNotice(
+      isFiltered ? `${visibleRows.length} students marked present.` : "All students marked present."
+    );
   }
 
   function handleReset() {
@@ -370,10 +409,50 @@ export default function Attendance() {
       </Card>
 
       <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
-        <StatCard icon={Users} label="Total Students" value={counts.total} sub={`${counts.unmarked} not marked`} tint="purple" />
-        <StatCard icon={CheckCircle2} label="Present" value={`${counts.present} (${pct(counts.present, counts.total)})`} tint="green" />
-        <StatCard icon={XCircle} label="Absent" value={`${counts.absent} (${pct(counts.absent, counts.total)})`} tint="red" />
-        <StatCard icon={Clock3} label="Late" value={`${counts.late} (${pct(counts.late, counts.total)})`} tint="blue" />
+        <StatButton onClick={() => setStatusFilter("all")} active={statusFilter === "all"} title="Show all students">
+          <StatCard
+            icon={Users}
+            label="Total Students"
+            value={counts.total}
+            sub={activeSession ? `${activeSession.label} · ${counts.unmarked} not marked` : `${counts.unmarked} not marked`}
+            tint="purple"
+            interactive
+            active={statusFilter === "all"}
+          />
+        </StatButton>
+        <StatButton onClick={() => pickStatus("Present")} active={statusFilter === "Present"} title="Show present students">
+          <StatCard
+            icon={CheckCircle2}
+            label="Present"
+            value={`${counts.present} (${pct(counts.present, counts.total)})`}
+            sub={statusFilter === "Present" ? "Showing present only" : "Click to view list"}
+            tint="green"
+            interactive
+            active={statusFilter === "Present"}
+          />
+        </StatButton>
+        <StatButton onClick={() => pickStatus("Absent")} active={statusFilter === "Absent"} title="Show absent students">
+          <StatCard
+            icon={XCircle}
+            label="Absent"
+            value={`${counts.absent} (${pct(counts.absent, counts.total)})`}
+            sub={statusFilter === "Absent" ? "Showing absent only" : "Click to view list"}
+            tint="red"
+            interactive
+            active={statusFilter === "Absent"}
+          />
+        </StatButton>
+        <StatButton onClick={() => pickStatus("Late")} active={statusFilter === "Late"} title="Show late students">
+          <StatCard
+            icon={Clock3}
+            label="Late"
+            value={`${counts.late} (${pct(counts.late, counts.total)})`}
+            sub={statusFilter === "Late" ? "Showing late only" : "Click to view list"}
+            tint="blue"
+            interactive
+            active={statusFilter === "Late"}
+          />
+        </StatButton>
       </div>
 
       <Notice message={notice} onClose={() => setNotice("")} />
@@ -381,7 +460,13 @@ export default function Attendance() {
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h2 className="font-semibold text-gray-900">Student Attendance List</h2>
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+              {statusFilter === "all" ? "Student Attendance List" : `${statusFilter} Students`}
+              <span className="text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 tabular-nums">
+                {visibleRows.length}
+                {visibleRows.length !== rows.length ? ` of ${rows.length}` : ""}
+              </span>
+            </h2>
             <p className="text-xs text-gray-500 mt-0.5">
               {applied.course} · {applied.batch} ·{" "}
               {new Date(applied.date).toLocaleDateString("en-IN", {
@@ -400,6 +485,41 @@ export default function Attendance() {
             </button>
             <SegmentedControl options={["By Date", "By Session"]} value={view} onChange={setView} />
           </div>
+        </div>
+
+        {/* session chips — instant, independent of the Apply filters above */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 mr-1">
+            <ListFilter size={13} /> Session
+          </span>
+          {[{ id: "all", label: "All sessions" }, ...SESSIONS].map((sess) => {
+            const on = sessionFilter === sess.id;
+            return (
+              <button
+                key={sess.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => (sess.id === "all" ? setSessionFilter("all") : pickSession(sess.id))}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium ring-1 ring-inset transition-all duration-150 active:scale-95 ${
+                  on
+                    ? "bg-brand-600 text-white ring-brand-600 shadow-sm"
+                    : "bg-white text-gray-600 ring-gray-200 hover:bg-brand-50 hover:text-brand-700 hover:ring-brand-200"
+                }`}
+              >
+                {sess.label}
+                {sess.time && <span className={`ml-1.5 ${on ? "text-white/70" : "text-gray-400"}`}>{sess.time.split(" - ")[0]}</span>}
+              </button>
+            );
+          })}
+          {isFiltered && (
+            <button
+              type="button"
+              onClick={clearScope}
+              className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-800 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors animate-fade-in"
+            >
+              <X size={13} /> Clear filters
+            </button>
+          )}
         </div>
 
         {selected.length > 0 && (
@@ -426,20 +546,36 @@ export default function Attendance() {
 
         {view === "By Session" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-            {bySession.map((s) => (
-              <div key={s.id} className="bg-gray-50/70 border border-gray-100 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-900">{s.label}</p>
-                  <span className="text-xs text-gray-400">{s.time}</span>
-                </div>
-                <div className="flex gap-4 mt-2 text-xs">
-                  <span className="text-emerald-600">Present {s.present}</span>
-                  <span className="text-rose-500">Absent {s.absent}</span>
-                  <span className="text-amber-600">Late {s.late}</span>
-                  <span className="text-gray-400 ml-auto">{s.list.length} students</span>
-                </div>
-              </div>
-            ))}
+            {bySession.map((s) => {
+              const on = sessionFilter === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => pickSession(s.id)}
+                  className={`group text-left rounded-xl p-4 border transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
+                    on
+                      ? "bg-brand-50/70 border-brand-300 ring-2 ring-brand-200 shadow-card-hover"
+                      : "bg-gray-50/70 border-gray-100 hover:border-brand-200 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className={`text-sm font-semibold transition-colors ${on ? "text-brand-800" : "text-gray-900 group-hover:text-brand-700"}`}>
+                      {s.label}
+                    </p>
+                    <span className="text-xs text-gray-400">{s.time}</span>
+                  </div>
+                  <div className="flex gap-4 mt-2 text-xs">
+                    <span className="text-emerald-600">Present {s.present}</span>
+                    <span className="text-rose-500">Absent {s.absent}</span>
+                    <span className="text-amber-600">Late {s.late}</span>
+                    <span className="text-gray-400 ml-auto">{s.list.length} students</span>
+                  </div>
+                  <span className={`block h-0.5 rounded-full mt-3 transition-all duration-300 ${on ? "w-full bg-brand-500" : "w-0 bg-brand-300 group-hover:w-1/3"}`} />
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -466,8 +602,8 @@ export default function Attendance() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {rows.map((r, i) => (
-                <tr key={r.id} className={`transition-colors hover:bg-brand-50/40 ${selected.includes(r.id) ? "bg-brand-50/60" : ""}`}>
+              {visibleRows.map((r, i) => (
+                <tr key={r.id} className={`transition-colors hover:bg-brand-50/40 animate-fade-in ${selected.includes(r.id) ? "bg-brand-50/60" : ""}`}>
                   <td className="py-3 px-4">
                     <input
                       type="checkbox"
@@ -502,17 +638,30 @@ export default function Attendance() {
             </tbody>
           </table>
 
-          {rows.length === 0 && (
+          {rows.length === 0 ? (
             <EmptyState
               icon={<SearchX size={24} />}
               title="No students in this batch"
               description="Pick a different course or batch and apply again."
             />
-          )}
+          ) : visibleRows.length === 0 ? (
+            <EmptyState
+              compact
+              icon={<SearchX size={22} />}
+              title={
+                statusFilter === "all"
+                  ? "No students in this session"
+                  : `No ${statusFilter.toLowerCase()} students${activeSession ? ` in ${activeSession.label}` : ""}`
+              }
+              description="Change the status card or session, or clear the filters to see the full register."
+              action={<SecondaryButton size="sm" icon={X} onClick={clearScope}>Clear filters</SecondaryButton>}
+            />
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
           <p className="text-xs text-gray-500">
+            {activeSession ? `${activeSession.label}: ` : ""}
             {counts.present} present · {counts.absent} absent · {counts.late} late · {counts.unmarked} not marked
           </p>
           <div className="flex items-center gap-2">

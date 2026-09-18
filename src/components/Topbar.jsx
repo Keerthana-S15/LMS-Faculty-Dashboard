@@ -47,12 +47,6 @@ export default function Topbar({ onMenuClick }) {
   const profileRef = useDismiss(profileOpen, () => setProfileOpen(false));
   const notifRef = useDismiss(notifOpen, () => setNotifOpen(false));
 
-  // Menus shouldn't linger after navigating.
-  useEffect(() => {
-    setProfileOpen(false);
-    setNotifOpen(false);
-  }, [pathname]);
-
   const title = PAGE_TITLES[pathname] || "Dashboard";
   const unread = announcements.filter((a) => !readIds.includes(a.id));
 
@@ -126,7 +120,10 @@ export default function Topbar({ onMenuClick }) {
                     <li key={a.id}>
                       <Link
                         to="/announcements"
-                        onClick={() => setReadIds((ids) => (ids.includes(a.id) ? ids : [...ids, a.id]))}
+                        onClick={() => {
+                          setReadIds((ids) => (ids.includes(a.id) ? ids : [...ids, a.id]));
+                          setNotifOpen(false);
+                        }}
                         className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                       >
                         <span
@@ -151,6 +148,7 @@ export default function Topbar({ onMenuClick }) {
               </ul>
               <Link
                 to="/announcements"
+                onClick={() => setNotifOpen(false)}
                 className="block text-center text-sm font-medium text-brand-600 hover:bg-brand-50 px-4 py-2.5 border-t border-gray-100 transition-colors"
               >
                 View all announcements
@@ -190,6 +188,7 @@ export default function Topbar({ onMenuClick }) {
               <Link
                 to="/profile"
                 role="menuitem"
+                onClick={() => setProfileOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <UserCircle size={16} className="text-gray-400" /> My Profile
@@ -197,6 +196,7 @@ export default function Topbar({ onMenuClick }) {
               <Link
                 to="/logout"
                 role="menuitem"
+                onClick={() => setProfileOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2 text-rose-600 hover:bg-rose-50 transition-colors"
               >
                 <LogOut size={16} /> Logout

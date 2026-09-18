@@ -98,7 +98,7 @@ import {
   FileSpreadsheet,
   FileJson,
 } from "lucide-react";
-import { PageHeader, OutlineButton, SearchInput, Select, StatCard, Card, Badge, Notice, EmptyState, SecondaryButton, tableHeadRowClass, tableHeadCellClass, tableRowClass, Avatar } from "../components/ui";
+import { PageHeader, OutlineButton, SearchInput, Select, StatCard, StatButton, Card, Badge, Notice, EmptyState, SecondaryButton, tableHeadRowClass, tableHeadCellClass, tableRowClass, Avatar } from "../components/ui";
 import { students as seedStudents } from "../data/mockData";
 
 const PER_PAGE = 8;
@@ -331,14 +331,19 @@ export default function Students() {
     return () => clearTimeout(id);
   }, [notice]);
 
-  useEffect(() => setPage(1), [query, course, batch]);
+  // Which stat card is active. It narrows the table on top of the search
+  // and dropdown filters; clicking the active card again returns to "all".
+  const [segment, setSegment] = useState("all"); // all | Male | Female | Active | Inactive
+
+  useEffect(() => setPage(1), [query, course, batch, segment]);
 
   const courseOptions = useMemo(() => [...new Set(students.map((s) => s.course))].sort(), [students]);
   const batchOptions = useMemo(() => [...new Set(students.map((s) => s.batch))].sort(), [students]);
 
-  const filtered = useMemo(() => {
+  // Search + dropdown filters. The stat cards count against this scope.
+  const scope = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = students.filter((s) => {
+    return students.filter((s) => {
       const matchesQuery =
         !q ||
         s.name.toLowerCase().includes(q) ||
@@ -350,16 +355,26 @@ export default function Students() {
         (batch === "all" || s.batch === batch)
       );
     });
+  }, [students, query, course, batch]);
 
+  // What the table shows: the scope narrowed by the active card, sorted.
+  const filtered = useMemo(() => {
+    const matchesSegment = (s) =>
+      segment === "all" ||
+      (segment === "Male" && s.gender === "Male") ||
+      (segment === "Female" && s.gender === "Female") ||
+      (segment === "Active" && s.status === "Active") ||
+      (segment === "Inactive" && s.status !== "Active");
     const dir = sort.dir === "asc" ? 1 : -1;
-    return [...list].sort((a, b) => String(a[sort.key]).localeCompare(String(b[sort.key])) * dir);
-  }, [students, query, course, batch, sort]);
+    return scope
+      .filter(matchesSegment)
+      .sort((a, b) => String(a[sort.key]).localeCompare(String(b[sort.key])) * dir);
+  }, [scope, segment, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const pageRows = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  // Stats follow whatever is on screen, so filters stay meaningful.
-  const scope = filtered;
+  // Stats follow whatever the search/dropdowns allow, so filters stay meaningful.
   const stats = {
     total: scope.length,
     male: scope.filter((s) => s.gender === "Male").length,
@@ -369,6 +384,15 @@ export default function Students() {
   };
 
   const isFiltered = query || course !== "all" || batch !== "all";
+  const pickSegment = (key) => setSegment((cur) => (cur === key ? "all" : key));
+
+  const SEGMENTS = [
+    { key: "all", icon: Users, label: "Total Students", value: stats.total, tint: "purple", sub: isFiltered ? "In current view" : "All students" },
+    { key: "Male", icon: UserRound, label: "Male Students", value: stats.male, tint: "blue" },
+    { key: "Female", icon: UserRound, label: "Female Students", value: stats.female, tint: "red" },
+    { key: "Active", icon: UserCheck, label: "Active Students", value: stats.active, tint: "green" },
+    { key: "Inactive", icon: UserRoundX, label: "Inactive", value: stats.inactive, tint: "orange" },
+  ];
 
   const SortHeader = ({ label, sortKey }) => (
     <th className={tableHeadCellClass}>
@@ -401,11 +425,27 @@ export default function Students() {
       />
 
       <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
-        <StatCard icon={Users} label="Total Students" value={stats.total} sub={isFiltered ? "In current view" : undefined} tint="purple" />
-        <StatCard icon={UserRound} label="Male Students" value={stats.male} tint="blue" />
-        <StatCard icon={UserRound} label="Female Students" value={stats.female} tint="red" />
-        <StatCard icon={UserCheck} label="Active Students" value={stats.active} tint="green" />
-        <StatCard icon={UserRoundX} label="Inactive" value={stats.inactive} tint="orange" />
+        {SEGMENTS.map((seg) => {
+          const on = segment === seg.key;
+          return (
+            <StatButton
+              key={seg.key}
+              onClick={() => (seg.key === "all" ? setSegment("all") : pickSegment(seg.key))}
+              active={on}
+              title={seg.key === "all" ? "Show all students" : `Show ${seg.label.toLowerCase()}`}
+            >
+              <StatCard
+                icon={seg.icon}
+                label={seg.label}
+                value={seg.value}
+                sub={seg.sub ?? (on ? "Showing only these" : "Click to view list")}
+                tint={seg.tint}
+                interactive
+                active={on}
+              />
+            </StatButton>
+          );
+        })}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -431,6 +471,23 @@ export default function Students() {
       <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
+        {segment !== "all" && (
+          <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-gray-100 bg-brand-50/40 animate-fade-in">
+            <p className="text-sm font-semibold text-gray-900">
+              {SEGMENTS.find((x) => x.key === segment)?.label}
+              <span className="ml-2 text-xs font-medium text-gray-500 bg-white ring-1 ring-gray-200 rounded-full px-2 py-0.5 tabular-nums">
+                {filtered.length} of {scope.length}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setSegment("all")}
+              className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-800 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <X size={13} /> Show all
+            </button>
+          </div>
+        )}
         <table className="w-full text-sm">
           <thead>
             <tr className={tableHeadRowClass}>
@@ -478,9 +535,21 @@ export default function Students() {
         {filtered.length === 0 && (
           <EmptyState
             icon={<SearchX size={24} />}
-            title="No students match your filters"
-            description="Try a different search term, course or batch."
-            action={<SecondaryButton onClick={() => { setQuery(""); setCourse("all"); setBatch("all"); }}>Clear filters</SecondaryButton>}
+            title={
+              segment !== "all" && scope.length > 0
+                ? `No ${SEGMENTS.find((x) => x.key === segment)?.label.toLowerCase()} in this view`
+                : "No students match your filters"
+            }
+            description={
+              segment !== "all" && scope.length > 0
+                ? "Pick a different card, or show all students."
+                : "Try a different search term, course or batch."
+            }
+            action={
+              <SecondaryButton onClick={() => { setQuery(""); setCourse("all"); setBatch("all"); setSegment("all"); }}>
+                Clear filters
+              </SecondaryButton>
+            }
           />
         )}
 

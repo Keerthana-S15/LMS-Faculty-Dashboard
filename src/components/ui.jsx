@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, X, CheckCircle2, AlertTriangle, Info, RefreshCw, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, X, CheckCircle2, AlertTriangle, Info, RefreshCw, ChevronRight, ChevronDown, ArrowUpRight } from "lucide-react";
 
 /* ------------------------------------------------------------------
    Shared class strings. Pages reuse these for native inputs/labels so
@@ -30,37 +30,94 @@ export const menuItemDangerClass =
 
 /* ---------------- stat card ---------------- */
 
+/* Each tint reuses the same palette as before: `icon` is the original tile
+   colour; `glow`/`bar` are the same hue used only for hover accents. */
 const tints = {
-  purple: "bg-brand-100 text-brand-700",
-  green: "bg-emerald-100 text-emerald-600",
-  orange: "bg-amber-100 text-amber-600",
-  blue: "bg-blue-100 text-blue-600",
-  red: "bg-rose-100 text-rose-600",
+  purple: { icon: "bg-brand-100 text-brand-700", glow: "bg-brand-200", bar: "bg-brand-500", text: "text-brand-700" },
+  green: { icon: "bg-emerald-100 text-emerald-600", glow: "bg-emerald-200", bar: "bg-emerald-500", text: "text-emerald-600" },
+  orange: { icon: "bg-amber-100 text-amber-600", glow: "bg-amber-200", bar: "bg-amber-500", text: "text-amber-600" },
+  blue: { icon: "bg-blue-100 text-blue-600", glow: "bg-blue-200", bar: "bg-blue-500", text: "text-blue-600" },
+  red: { icon: "bg-rose-100 text-rose-600", glow: "bg-rose-200", bar: "bg-rose-500", text: "text-rose-600" },
 };
 
+/**
+ * Stat tile. Hover lifts the card, sweeps a soft sheen across it, warms the
+ * corner with the tint colour, animates the icon and draws an accent bar.
+ * `interactive` (inside a StatButton/Link with `group`) adds the "open"
+ * arrow and a press-down state; `active` keeps the highlighted look.
+ */
 export function StatCard({ icon: Icon, label, value, sub, tint, active = false, interactive = false }) {
+  const t = tints[tint] || tints.purple;
   return (
     <div
-      className={`h-full bg-white rounded-2xl border p-5 flex items-center gap-4 flex-1 min-w-[160px] transition-all duration-200 ${
-        active
-          ? "border-brand-300 ring-2 ring-brand-200 shadow-card-hover"
-          : "border-gray-100 shadow-card"
-      } ${interactive ? "group-hover:shadow-card-hover group-hover:border-brand-200 group-hover:-translate-y-0.5" : ""}`}
+      className={`group/stat relative isolate overflow-hidden h-full bg-white rounded-2xl border p-5 flex items-center gap-4 flex-1 min-w-[160px] transition-all duration-300 ease-out will-change-transform
+        hover:-translate-y-1 hover:shadow-card-hover hover:border-brand-200
+        ${active ? "border-brand-300 ring-2 ring-brand-200 shadow-card-hover" : "border-gray-100 shadow-card"}
+        ${interactive ? "cursor-pointer group-active:translate-y-0 group-active:scale-[0.985] group-active:shadow-card group-focus-visible:border-brand-300" : ""}`}
     >
+      {/* soft colour bloom in the corner */}
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl opacity-0 transition-opacity duration-500 group-hover/stat:opacity-60 ${
+          active ? "opacity-40" : ""
+        } ${t.glow}`}
+      />
+      {/* faint watermark of the icon */}
+      <Icon
+        aria-hidden="true"
+        size={84}
+        strokeWidth={1.5}
+        className={`pointer-events-none absolute -bottom-5 -right-4 opacity-[0.045] transition-all duration-500 ease-out group-hover/stat:opacity-[0.09] group-hover/stat:-rotate-6 group-hover/stat:scale-110 ${t.text}`}
+      />
+      {/* light sweep on hover */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0 transition-all duration-700 ease-out group-hover/stat:left-full group-hover/stat:opacity-100"
+      />
+
       <div
-        className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-          tints[tint] || tints.purple
-        }`}
+        className={`relative w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-inset ring-white/60 shadow-sm transition-all duration-300 ease-out group-hover/stat:scale-110 group-hover/stat:-rotate-6 group-hover/stat:shadow-md ${t.icon}`}
       >
-        <Icon size={22} />
+        <Icon
+          size={22}
+          className="transition-transform duration-300 ease-out group-hover/stat:rotate-6 group-hover/stat:scale-105"
+        />
       </div>
-      <div className="min-w-0">
-        <p className="text-[13px] font-medium text-gray-500 truncate">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 leading-tight tracking-tight tabular-nums">
+
+      <div className="relative min-w-0 flex-1">
+        <p className="text-[13px] font-medium text-gray-500 leading-snug transition-colors duration-300 group-hover/stat:text-gray-700">
+          {label}
+        </p>
+        <p className="text-2xl font-bold text-gray-900 leading-tight tracking-tight tabular-nums transition-transform duration-300 ease-out group-hover/stat:translate-x-0.5">
           {value}
         </p>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        {sub && (
+          <p className="text-xs text-gray-400 mt-0.5 transition-colors duration-300 group-hover/stat:text-gray-500">
+            {sub}
+          </p>
+        )}
       </div>
+
+      {interactive && (
+        <span
+          aria-hidden="true"
+          className={`absolute top-3.5 right-3.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-sm ring-1 ring-black/5 transition-all duration-300 ease-out ${
+            active
+              ? "opacity-100 translate-x-0 translate-y-0"
+              : "opacity-0 translate-y-1 -translate-x-1 group-hover/stat:opacity-100 group-hover/stat:translate-x-0 group-hover/stat:translate-y-0"
+          } ${t.text}`}
+        >
+          <ArrowUpRight size={14} strokeWidth={2.25} />
+        </span>
+      )}
+
+      {/* accent bar grows in from the left */}
+      <span
+        aria-hidden="true"
+        className={`absolute bottom-0 left-0 h-[3px] rounded-r-full transition-all duration-500 ease-out ${
+          active ? "w-full" : "w-0 group-hover/stat:w-full"
+        } ${t.bar}`}
+      />
     </div>
   );
 }
