@@ -283,25 +283,50 @@ function CourseModal({ initial, onClose, onSave }) {
 
 function CardMenu({ onEdit, onDuplicate, onDelete }) {
   const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
+    if (!open) return;
     const close = (e) => ref.current && !ref.current.contains(e.target) && setOpen(false);
+    const onEsc = (e) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  // Open upwards when the menu would run off the bottom of the viewport.
+  const toggle = () => {
+    if (!open && ref.current) {
+      const { bottom } = ref.current.getBoundingClientRect();
+      setDropUp(window.innerHeight - bottom < 150);
+    }
+    setOpen((v) => !v);
+  };
 
   return (
-    <div className="absolute top-2 right-2 z-10" ref={ref}>
+    <div className="absolute top-2 right-2 z-20" ref={ref} data-open={open}>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         aria-label="Course actions"
-        className="w-8 h-8 bg-white/90 backdrop-blur rounded-full shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-gray-900 transition-colors"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={`w-8 h-8 backdrop-blur rounded-full shadow-sm flex items-center justify-center transition-colors ${
+          open ? "bg-white text-gray-900 ring-2 ring-brand-200" : "bg-white/90 text-gray-600 hover:bg-white hover:text-gray-900"
+        }`}
       >
         <MoreVertical size={15} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 origin-top-right animate-scale-in">
+        <div
+          role="menu"
+          className={`absolute right-0 w-44 bg-white rounded-xl shadow-dropdown border border-gray-100 py-1.5 text-sm z-30 animate-scale-in ${
+            dropUp ? "bottom-full mb-1.5 origin-bottom-right" : "top-full mt-1.5 origin-top-right"
+          }`}
+        >
           <button
             onClick={() => { setOpen(false); onEdit(); }}
             className="w-full flex items-center gap-2 px-3.5 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
@@ -438,21 +463,24 @@ export default function MyCourses() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* The card itself must not clip, or the menu gets cut off; the image
+              wrapper handles rounding/zoom clipping on its own. A card is lifted
+              above its neighbours while its menu is open. */}
           {filtered.map((c) => (
-            <Card key={c.id} hover className="overflow-hidden group flex flex-col">
-              <div className="relative overflow-hidden">
+            <Card key={c.id} hover className="relative group flex flex-col has-[[data-open=true]]:z-30">
+              <div className="relative overflow-hidden rounded-t-2xl">
                 <img
                   src={c.image}
                   alt={c.title}
                   className="w-full h-36 object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                 />
                 <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
-                <CardMenu
-                  onEdit={() => setModal(c)}
-                  onDuplicate={() => handleDuplicate(c)}
-                  onDelete={() => handleDelete(c)}
-                />
               </div>
+              <CardMenu
+                onEdit={() => setModal(c)}
+                onDuplicate={() => handleDuplicate(c)}
+                onDelete={() => handleDelete(c)}
+              />
               <div className="p-4 flex-1 flex flex-col">
                 <h3 className="font-semibold text-gray-900 text-sm leading-snug">{c.title}</h3>
                 <p className="text-xs text-gray-500 mt-1">{c.program}</p>
