@@ -70,8 +70,9 @@ import {
   Users,
   CalendarClock,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Card, Notice, Tabs, EmptyState, SecondaryButton, inputClass, labelClass } from "../components/ui";
-import { announcements as seedAnnouncements } from "../data/mockData";
+import { PageHeader, PrimaryButton, SearchInput, Select, Card, Notice, Tabs, EmptyState, SecondaryButton, LoadingState, ErrorState, inputClass, labelClass } from "../components/ui";
+import { announcementsApi, errorMessage } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const AUDIENCES = [
   "All Students",
@@ -102,31 +103,6 @@ const statusStyle = {
   Scheduled: "bg-amber-100 text-amber-700",
   Draft: "bg-indigo-100 text-indigo-700",
 };
-
-/* ------------------------------------------------------------------
-   Seeded rows carry a date string only — normalise into real values.
-   Replace with your API when the backend is ready:
-     getAnnouncements().then((r) => setItems(normalise(r)))
--------------------------------------------------------------------*/
-const DAY_OFFSETS = [-1, -3, -6];
-
-const normalise = (list) =>
-  list.map((a, i) => {
-    const posted = new Date();
-    posted.setDate(posted.getDate() + (DAY_OFFSETS[i] ?? -8));
-    posted.setHours(10, 30, 0, 0);
-    return {
-      id: a.id,
-      title: a.title,
-      body: a.desc || "",
-      audience: AUDIENCES[0],
-      priority: i === 0 ? "Important" : "Normal",
-      status: "Published",
-      pinned: false,
-      postedAt: posted,
-      ...a.extra,
-    };
-  });
 
 const toInputValue = (d) => {
   const pad = (n) => String(n).padStart(2, "0");
@@ -360,7 +336,14 @@ function RowMenu({ item, onEdit, onTogglePin, onToggleStatus, onDuplicate, onDel
 /* ---------------- page ---------------- */
 
 export default function Announcements() {
-  const [items, setItems] = useState(() => normalise(seedAnnouncements));
+  // Announcements come from GET /api/announcements (postedAt is a Date).
+  const {
+    data: items,
+    setData: setItems,
+    loading,
+    error,
+    reload,
+  } = useResource((signal) => announcementsApi.list(undefined, { signal }), []);
   const [tab, setTab] = useState("all");
   const [query, setQuery] = useState("");
   const [audience, setAudience] = useState("all");
@@ -401,31 +384,58 @@ export default function Announcements() {
       .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.postedAt - a.postedAt);
   }, [items, tab, query, audience]);
 
-  const nextId = () => Math.max(0, ...items.map((a) => a.id)) + 1;
+  const payload = (data) => ({
+    title: data.title,
+    body: data.body,
+    audience: data.audience,
+    priority: data.priority,
+    status: data.status,
+    pinned: Boolean(data.pinned),
+    postedAt: new Date(data.postedAt).toISOString(),
+  });
 
-  function handleSave(data) {
-    if (data.id) {
-      setItems((list) => list.map((a) => (a.id === data.id ? { ...a, ...data } : a)));
-      setNotice(`"${data.title}" updated.`);
-    } else {
-      setItems((list) => [{ ...data, id: nextId() }, ...list]);
-      setNotice(
-        data.status === "Published"
-          ? `Published to ${data.audience}.`
-          : data.status === "Scheduled"
-          ? `Scheduled for ${fmtDate(data.postedAt)}.`
-          : "Saved as draft."
-      );
+  const applySaved = (saved) =>
+    setItems((list) => (list.some((a) => a.id === saved.id)
+      ? list.map((a) => (a.id === saved.id ? saved : a))
+      : [saved, ...list]));
+
+  async function handleSave(data) {
+    const saved = data.id
+      ? await announcementsApi.update(data.id, payload(data))
+      : await announcementsApi.create(payload(data));
+    applySaved(saved);
+    setNotice(
+      data.id
+        ? `"${saved.title}" updated.`
+        : saved.status === "Published"
+        ? `Published to ${saved.audience}.`
+        : saved.status === "Scheduled"
+        ? `Scheduled for ${fmtDate(saved.postedAt)}.`
+        : "Saved as draft."
+    );
+  }
+
+  /** Optimistic patch, rolled back if the API rejects it. */
+  async function update(id, patch) {
+    const before = items.find((a) => a.id === id);
+    setItems((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    try {
+      applySaved(await announcementsApi.update(id, patch));
+    } catch (err) {
+      if (before) setItems((list) => list.map((a) => (a.id === id ? before : a)));
+      setNotice(errorMessage(err, "Couldn't update that announcement."));
     }
   }
 
-  const update = (id, patch) =>
-    setItems((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
-
-  function handleDelete(item) {
+  async function handleDelete(item) {
     if (!window.confirm(`Delete "${item.title}"?`)) return;
-    setItems((list) => list.filter((a) => a.id !== item.id));
-    setNotice(`"${item.title}" deleted.`);
+    try {
+      await announcementsApi.remove(item.id);
+      setItems((list) => list.filter((a) => a.id !== item.id));
+      setNotice(`"${item.title}" deleted.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't delete that announcement."));
+    }
   }
 
   const toggleExpand = (id) =>
@@ -462,7 +472,9 @@ export default function Announcements() {
       <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="divide-y divide-gray-100">
-        {visible.map((a) => {
+        {loading && <LoadingState rows={4} label="Loading announcements…" />}
+        {!loading && error && <ErrorState description={error} onRetry={reload} />}
+        {!loading && !error && visible.map((a) => {
           const isOpen = expanded.includes(a.id);
           const long = a.body.length > 120;
           return (
@@ -546,7 +558,7 @@ export default function Announcements() {
           );
         })}
 
-        {visible.length === 0 && (
+        {!loading && !error && visible.length === 0 && (
           <EmptyState
             icon={items.length === 0 ? <Megaphone size={24} /> : <SearchX size={24} />}
             title={items.length === 0 ? "No announcements yet" : "Nothing matches your filters"}

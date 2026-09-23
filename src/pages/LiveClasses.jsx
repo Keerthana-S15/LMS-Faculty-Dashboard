@@ -99,89 +99,9 @@ import {
   Copy,
   Trash2,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Card, Notice, Tabs, EmptyState, IconButton } from "../components/ui";
-
-/* ------------------------------------------------------------------
-   Sample data — real Date objects so the tabs and countdowns work.
-   Replace this block with your API call when the backend is ready:
-     const [classes, setClasses] = useState([]);
-     useEffect(() => { getLiveClasses({ status: tab }).then(setClasses); }, [tab]);
--------------------------------------------------------------------*/
-const at = (dayOffset, hour, minute = 0) => {
-  const d = new Date();
-  d.setDate(d.getDate() + dayOffset);
-  d.setHours(hour, minute, 0, 0);
-  return d;
-};
-
-const SAMPLE_CLASSES = [
-  {
-    id: 1,
-    title: "Anatomy and Physiology",
-    course: "Anatomy and Physiology",
-    year: "Year I",
-    batch: "Batch A",
-    room: "Room 101",
-    startAt: at(0, new Date().getHours() + 2, 0),
-    endAt: at(0, new Date().getHours() + 3, 0),
-    meetingLink: "https://meet.google.com/abc-defg-hij",
-  },
-  {
-    id: 2,
-    title: "Fundamentals of Nursing",
-    course: "Fundamentals of Nursing",
-    year: "Year I",
-    batch: "Batch B",
-    room: "Room 102",
-    startAt: at(0, new Date().getHours() + 4, 30),
-    endAt: at(0, new Date().getHours() + 5, 30),
-    meetingLink: "https://meet.google.com/klm-nopq-rst",
-  },
-  {
-    id: 3,
-    title: "Pharmacology",
-    course: "Pharmacology",
-    year: "Year II",
-    batch: "Batch A",
-    room: "Room 103",
-    startAt: at(0, new Date().getHours(), new Date().getMinutes() - 10),
-    endAt: at(0, new Date().getHours() + 1, new Date().getMinutes()),
-    meetingLink: "https://meet.google.com/uvw-xyza-bcd",
-  },
-  {
-    id: 4,
-    title: "Community Health Nursing",
-    course: "Community Health Nursing",
-    year: "Year II",
-    batch: "Batch B",
-    room: "Room 104",
-    startAt: at(1, 10, 0),
-    endAt: at(1, 11, 0),
-    meetingLink: "https://meet.google.com/efg-hijk-lmn",
-  },
-  {
-    id: 5,
-    title: "Medical-Surgical Nursing",
-    course: "Medical-Surgical Nursing",
-    year: "Year II",
-    batch: "Batch A",
-    room: "Room 105",
-    startAt: at(-1, 14, 0),
-    endAt: at(-1, 15, 0),
-    meetingLink: "",
-  },
-  {
-    id: 6,
-    title: "Child Health Nursing",
-    course: "Child Health Nursing",
-    year: "Year III",
-    batch: "Batch B",
-    room: "Room 106",
-    startAt: at(-2, 9, 0),
-    endAt: at(-2, 10, 0),
-    meetingLink: "",
-  },
-];
+import { PageHeader, PrimaryButton, SearchInput, Select, Card, Notice, Tabs, EmptyState, IconButton, LoadingState, ErrorState } from "../components/ui";
+import { liveClassesApi, errorMessage } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const TABS = [
   { key: "upcoming", label: "Upcoming Classes" },
@@ -290,7 +210,14 @@ function RowMenu({ onEdit, onCopyLink, onCancel }) {
 }
 
 export default function LiveClasses() {
-  const [classes, setClasses] = useState(SAMPLE_CLASSES);
+  // Classes come from GET /api/live-classes (startAt/endAt arrive as Dates).
+  const {
+    data: classes,
+    setData: setClasses,
+    loading,
+    error,
+    reload,
+  } = useResource((signal) => liveClassesApi.list(undefined, { signal }), []);
   const [tab, setTab] = useState("upcoming");
   const [query, setQuery] = useState("");
   const [course, setCourse] = useState("all");
@@ -345,10 +272,15 @@ export default function LiveClasses() {
     setNotice("Join link copied.");
   }
 
-  function handleCancel(c) {
+  async function handleCancel(c) {
     if (!window.confirm(`Cancel "${c.title}"? Students will be notified.`)) return;
-    setClasses((list) => list.filter((x) => x.id !== c.id));
-    setNotice("Class cancelled.");
+    try {
+      await liveClassesApi.remove(c.id);
+      setClasses((list) => list.filter((x) => x.id !== c.id));
+      setNotice("Class cancelled.");
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't cancel that class."));
+    }
   }
 
   return (
@@ -388,7 +320,11 @@ export default function LiveClasses() {
       <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="divide-y divide-gray-100">
-        {visible.length === 0 ? (
+        {loading ? (
+          <LoadingState rows={4} label="Loading live classes…" />
+        ) : error ? (
+          <ErrorState description={error} onRetry={reload} />
+        ) : visible.length === 0 ? (
           <EmptyState
             icon={<CalendarX size={24} />}
             title={

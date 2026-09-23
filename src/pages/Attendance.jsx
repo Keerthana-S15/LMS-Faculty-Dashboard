@@ -119,8 +119,9 @@ import {
   ListFilter,
   X,
 } from "lucide-react";
-import { PageHeader, OutlineButton, PrimaryButton, Select, StatCard, StatButton, Card, Notice, EmptyState, tableHeadRowClass, SecondaryButton, SegmentedControl } from "../components/ui";
-import { attendance as seedAttendance, students as seedStudents } from "../data/mockData";
+import { PageHeader, OutlineButton, PrimaryButton, Select, StatCard, StatButton, Card, Notice, EmptyState, LoadingState, ErrorState, tableHeadRowClass, SecondaryButton, SegmentedControl } from "../components/ui";
+import { attendanceApi, errorMessage } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const COURSES = [
   "Anatomy and Physiology",
@@ -142,28 +143,8 @@ const STATUSES = ["Present", "Absent", "Late"];
 const toKey = (d) => d.toISOString().slice(0, 10);
 const todayKey = () => toKey(new Date());
 
-/* ------------------------------------------------------------------
-   A register is built per course + batch + date. The seeded rows are
-   used for the first combination; anything else starts unmarked so the
-   faculty can fill it in. Replace with your API when ready:
-     getAttendance({ course, batch, date }).then(setRows)
--------------------------------------------------------------------*/
-const roster = seedStudents.map((s) => ({ id: s.id, name: s.name, roll: s.roll }));
-
-function buildRegister(course, batch, dateKey) {
-  const isSeeded = course === COURSES[0] && batch === BATCHES[0];
-  return roster.map((student, i) => {
-    const seeded = isSeeded ? seedAttendance[i] : null;
-    return {
-      ...student,
-      session: SESSIONS[i % 2].id,
-      status: seeded?.status ?? "",
-      checkIn: seeded?.checkIn && seeded.checkIn !== "-" ? seeded.checkIn : "",
-      checkOut: seeded?.checkOut && seeded.checkOut !== "-" ? seeded.checkOut : "",
-      remarks: seeded?.remarks && seeded.remarks !== "-" ? seeded.remarks : "",
-    };
-  });
-}
+/* The register for a course + batch + date comes from GET /api/attendance:
+   the full roster, with whatever has already been marked merged in. */
 
 const nowTime = () =>
   new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase();
@@ -211,7 +192,20 @@ export default function Attendance() {
   const [draft, setDraft] = useState({ course: COURSES[0], batch: BATCHES[0], date: todayKey() });
   const [applied, setApplied] = useState(draft);
 
-  const [rows, setRows] = useState(() => buildRegister(applied.course, applied.batch, applied.date));
+  const {
+    data: rows,
+    setData: setRows,
+    loading,
+    error,
+    reload,
+  } = useResource(
+    (signal) =>
+      attendanceApi.register(
+        { course: applied.course, batch: applied.batch, date: applied.date },
+        { signal }
+      ),
+    [applied]
+  );
   const [selected, setSelected] = useState([]);
   const [view, setView] = useState("By Date");
   // Client-side scoping of the register: which stat card is active and
@@ -221,8 +215,8 @@ export default function Attendance() {
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState("");
 
+  // A freshly loaded register has nothing selected and nothing unsaved.
   useEffect(() => {
-    setRows(buildRegister(applied.course, applied.batch, applied.date));
     setSelected([]);
     setDirty(false);
   }, [applied]);
@@ -318,10 +312,31 @@ export default function Attendance() {
     [rows]
   );
 
-  function handleSave() {
-    // POST the register here when the backend is ready.
-    setDirty(false);
-    setNotice(`Attendance saved for ${applied.batch} on ${applied.date}.`);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await attendanceApi.save({
+        course: applied.course,
+        batch: applied.batch,
+        date: applied.date,
+        rows: rows.map((r) => ({
+          id: r.id,
+          session: r.session,
+          status: r.status || null,
+          checkIn: r.checkIn,
+          checkOut: r.checkOut,
+          remarks: r.remarks,
+        })),
+      });
+      setDirty(false);
+      setNotice(`Attendance saved for ${applied.batch} on ${applied.date}.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't save attendance."));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleMarkAllPresent() {
@@ -334,7 +349,8 @@ export default function Attendance() {
   }
 
   function handleReset() {
-    setRows(buildRegister(applied.course, applied.batch, applied.date));
+    // Re-fetch the saved register, dropping any unsaved edits.
+    reload();
     setSelected([]);
     setDirty(false);
     setNotice("Changes discarded.");
@@ -580,6 +596,9 @@ export default function Attendance() {
         )}
 
         <div className="overflow-x-auto">
+          {loading && <LoadingState rows={6} label="Loading the register…" />}
+          {!loading && error && <ErrorState description={error} onRetry={reload} />}
+          {!loading && !error && (
           <table className="w-full text-sm">
             <thead>
               <tr className={tableHeadRowClass}>
@@ -637,8 +656,9 @@ export default function Attendance() {
               ))}
             </tbody>
           </table>
+          )}
 
-          {rows.length === 0 ? (
+          {!loading && !error && rows.length === 0 ? (
             <EmptyState
               icon={<SearchX size={24} />}
               title="No students in this batch"
@@ -670,8 +690,8 @@ export default function Attendance() {
                 Discard
               </SecondaryButton>
             )}
-            <PrimaryButton icon={Save} size="sm" onClick={handleSave} disabled={!dirty}>
-              {dirty ? "Save attendance" : "All changes saved"}
+            <PrimaryButton icon={Save} size="sm" onClick={handleSave} disabled={!dirty || saving}>
+              {saving ? "Saving…" : dirty ? "Save attendance" : "All changes saved"}
             </PrimaryButton>
           </div>
         </div>

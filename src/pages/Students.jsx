@@ -98,33 +98,11 @@ import {
   FileSpreadsheet,
   FileJson,
 } from "lucide-react";
-import { PageHeader, OutlineButton, SearchInput, Select, StatCard, StatButton, Card, Badge, Notice, EmptyState, SecondaryButton, tableHeadRowClass, tableHeadCellClass, tableRowClass, Avatar } from "../components/ui";
-import { students as seedStudents } from "../data/mockData";
+import { PageHeader, OutlineButton, SearchInput, Select, StatCard, StatButton, Card, Badge, Notice, EmptyState, SecondaryButton, LoadingState, ErrorState, tableHeadRowClass, tableHeadCellClass, tableRowClass, Avatar } from "../components/ui";
+import { studentsApi } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const PER_PAGE = 8;
-
-/* The seeded rows carry only name/roll/course/batch/email — fill in the
-   fields the stat cards and the detail view need. Replace with your API
-   result when the backend is ready. */
-const EXTRA = {
-  NUR1001: { gender: "Female", status: "Active", phone: "+91 98765 43210" },
-  NUR1002: { gender: "Male", status: "Active", phone: "+91 98765 43211" },
-  NUR1003: { gender: "Female", status: "Active", phone: "+91 98765 43212" },
-  NUR1004: { gender: "Male", status: "Active", phone: "+91 98765 43213" },
-  NUR1005: { gender: "Female", status: "Inactive", phone: "+91 98765 43214" },
-  NUR1006: { gender: "Female", status: "Active", phone: "+91 98765 43215" },
-  NUR1007: { gender: "Male", status: "Active", phone: "+91 98765 43216" },
-};
-
-const normalise = (list) =>
-  list.map((s) => ({
-    gender: "Female",
-    status: "Active",
-    phone: "",
-    admissionYear: 2023,
-    ...EXTRA[s.roll],
-    ...s,
-  }));
 
 /* ---------------- CSV / JSON download ---------------- */
 
@@ -313,9 +291,11 @@ function StudentModal({ student, onClose }) {
 /* ---------------- page ---------------- */
 
 export default function Students() {
-  /*  Swap for your API when the backend is ready:
-        useEffect(() => { getStudents().then((r) => setStudents(normalise(r))); }, []);  */
-  const [students] = useState(() => normalise(seedStudents));
+  // The roster comes from GET /api/students.
+  const { data: students, loading, error, reload } = useResource(
+    (signal) => studentsApi.list(undefined, { signal }),
+    []
+  );
 
   const [query, setQuery] = useState("");
   const [course, setCourse] = useState("all");
@@ -471,7 +451,9 @@ export default function Students() {
       <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
-        {segment !== "all" && (
+        {loading && <LoadingState rows={6} label="Loading students…" />}
+        {!loading && error && <ErrorState description={error} onRetry={reload} />}
+        {!loading && !error && segment !== "all" && (
           <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-gray-100 bg-brand-50/40 animate-fade-in">
             <p className="text-sm font-semibold text-gray-900">
               {SEGMENTS.find((x) => x.key === segment)?.label}
@@ -488,6 +470,7 @@ export default function Students() {
             </button>
           </div>
         )}
+        {!loading && !error && (
         <table className="w-full text-sm">
           <thead>
             <tr className={tableHeadRowClass}>
@@ -531,8 +514,9 @@ export default function Students() {
             ))}
           </tbody>
         </table>
+        )}
 
-        {filtered.length === 0 && (
+        {!loading && !error && filtered.length === 0 && (
           <EmptyState
             icon={<SearchX size={24} />}
             title={
@@ -553,7 +537,7 @@ export default function Students() {
           />
         )}
 
-        {filtered.length > 0 && (
+        {!loading && !error && filtered.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
             <p className="text-xs text-gray-500">
               Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of{" "}

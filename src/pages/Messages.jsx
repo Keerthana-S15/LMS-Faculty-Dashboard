@@ -234,8 +234,9 @@ import {
   ArrowLeft,
   SearchX,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, StatCard, Card, Notice, StatButton, labelClass, inputClass, IconButton } from "../components/ui";
-import { conversations as seedConversations, students as seedStudents } from "../data/mockData";
+import { PageHeader, PrimaryButton, StatCard, Card, Notice, StatButton, LoadingState, ErrorState, labelClass, inputClass, IconButton } from "../components/ui";
+import { messagesApi, studentsApi, errorMessage } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const FILTERS = ["All", "Unread", "Students", "Faculty", "Groups"];
 
@@ -253,18 +254,6 @@ const nowTime = () =>
    opens empty. Replace with your API when the backend is ready:
      getConversations().then(setChats) / getMessages(chatId)
 -------------------------------------------------------------------*/
-const normalise = (list) =>
-  list.map((c) => ({
-    ...c,
-    role: c.isGroup ? "Group" : c.role,
-    messages:
-      c.messages?.map((m, i) => ({ id: `${c.id}-${i}`, ...m })) ??
-      (c.last
-        ? [{ id: `${c.id}-0`, from: "them", text: c.last, time: c.time }]
-        : []),
-    files: c.files ?? [],
-  }));
-
 /* ---------------- new message modal ---------------- */
 
 function NewMessageModal({ existing, onClose, onCreate }) {
@@ -278,8 +267,11 @@ function NewMessageModal({ existing, onClose, onCreate }) {
     return () => document.removeEventListener("keydown", onEsc);
   }, [onClose]);
 
+  // Student contacts are loaded from the API; faculty groups are static.
+  const { data: students } = useResource((signal) => studentsApi.list(undefined, { signal }), []);
+
   const contacts = useMemo(() => {
-    const studentContacts = seedStudents.map((s) => ({
+    const studentContacts = students.map((s) => ({
       id: `s-${s.id}`,
       name: s.name,
       role: "Student",
@@ -289,7 +281,7 @@ function NewMessageModal({ existing, onClose, onCreate }) {
     return [...studentContacts, ...FACULTY_CONTACTS].filter(
       (c) => !q || c.name.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [students, query]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
@@ -421,8 +413,15 @@ function ChatMenu({ onMarkUnread, onDelete }) {
 /* ---------------- page ---------------- */
 
 export default function Messages() {
-  const [chats, setChats] = useState(() => normalise(seedConversations));
-  const [activeId, setActiveId] = useState(seedConversations[0]?.id ?? null);
+  // Conversations, their messages and files come from GET /api/conversations.
+  const {
+    data: chats,
+    setData: setChats,
+    loading,
+    error,
+    reload,
+  } = useResource((signal) => messagesApi.list({ signal }), []);
+  const [activeId, setActiveId] = useState(null);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState("");
@@ -430,11 +429,21 @@ export default function Messages() {
   const [sentThisSession, setSentThisSession] = useState(0);
   const [notice, setNotice] = useState("");
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const { data: serverStats } = useResource(
+    (signal) => messagesApi.stats({ signal }),
+    [],
+    { initial: null }
+  );
 
   const scrollRef = useRef(null);
   const fileRef = useRef(null);
 
   const active = chats.find((c) => c.id === activeId) || null;
+
+  // Open the first conversation once the list has loaded.
+  useEffect(() => {
+    if (activeId === null && chats.length) setActiveId(chats[0].id);
+  }, [chats, activeId]);
 
   useEffect(() => {
     if (!notice) return;
@@ -462,30 +471,39 @@ export default function Messages() {
     });
   }, [chats, search, filter]);
 
+  // Totals come from the API; sentThisSession keeps the tile live between
+  // refreshes without another round trip after every message.
   const stats = {
     total: chats.length,
     unread: chats.reduce((sum, c) => sum + (c.unread || 0), 0),
     groups: chats.filter((c) => c.isGroup).length,
-    sent: 156 + sentThisSession,
+    sent: (serverStats?.sent ?? 0) + sentThisSession,
   };
 
   function openChat(id) {
     setActiveId(id);
     setMobileChatOpen(true);
-    // Opening a chat clears its unread badge.
+    // Opening a chat clears its unread badge, here and on the server.
+    const chat = chats.find((c) => c.id === id);
     setChats((list) => list.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
+    if (chat?.unread) messagesApi.update(id, { unread: 0 }).catch(() => {});
   }
 
-  function sendMessage() {
+  async function sendMessage() {
     const text = draft.trim();
     if (!text || !active) return;
+
+    const chatId = active.id;
+    const optimisticId = `pending-${Date.now()}`;
     const time = nowTime();
+
+    // Show the bubble straight away, then reconcile with the saved row.
     setChats((list) =>
       list.map((c) =>
-        c.id === active.id
+        c.id === chatId
           ? {
               ...c,
-              messages: [...c.messages, { id: `${c.id}-${Date.now()}`, from: "me", text, time }],
+              messages: [...c.messages, { id: optimisticId, from: "me", text, time }],
               last: text,
               time: "Now",
               unread: 0,
@@ -495,79 +513,82 @@ export default function Messages() {
     );
     setSentThisSession((n) => n + 1);
     setDraft("");
+
+    try {
+      const saved = await messagesApi.send(chatId, { text, from: "me" });
+      setChats((list) =>
+        list.map((c) =>
+          c.id === chatId
+            ? { ...c, messages: c.messages.map((m) => (m.id === optimisticId ? saved : m)) }
+            : c
+        )
+      );
+    } catch (err) {
+      setChats((list) =>
+        list.map((c) =>
+          c.id === chatId
+            ? { ...c, messages: c.messages.filter((m) => m.id !== optimisticId) }
+            : c
+        )
+      );
+      setSentThisSession((n) => Math.max(0, n - 1));
+      setDraft(text);
+      setNotice(errorMessage(err, "Couldn't send that message."));
+    }
   }
 
-  function attachFile(file) {
+  async function attachFile(file) {
     if (!file || !active) return;
     const sizeLabel =
       file.size < 1024 * 1024
         ? `${(file.size / 1024).toFixed(0)} KB`
         : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-    const time = nowTime();
-    setChats((list) =>
-      list.map((c) =>
-        c.id === active.id
-          ? {
-              ...c,
-              files: [...c.files, { name: file.name, size: sizeLabel }],
-              messages: [
-                ...c.messages,
-                { id: `${c.id}-${Date.now()}`, from: "me", text: `📎 ${file.name}`, time },
-              ],
-              last: `📎 ${file.name}`,
-              time: "Now",
-            }
-          : c
-      )
-    );
-    setSentThisSession((n) => n + 1);
-    setNotice(`"${file.name}" shared.`);
+
+    try {
+      // The file itself stays local; the API records what was shared.
+      const saved = await messagesApi.attach(active.id, { name: file.name, size: sizeLabel });
+      setChats((list) => list.map((c) => (c.id === saved.id ? saved : c)));
+      setSentThisSession((n) => n + 1);
+      setNotice(`"${file.name}" shared.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't share that file."));
+    }
   }
 
-  function createConversation(contact, text) {
-    const existing = chats.find((c) => c.name === contact.name);
-    const time = nowTime();
-    if (existing) {
-      setChats((list) =>
-        list.map((c) =>
-          c.id === existing.id
-            ? {
-                ...c,
-                messages: [...c.messages, { id: `${c.id}-${Date.now()}`, from: "me", text, time }],
-                last: text,
-                time: "Now",
-                unread: 0,
-              }
-            : c
-        )
-      );
-      setActiveId(existing.id);
-    } else {
-      const id = Math.max(0, ...chats.map((c) => c.id)) + 1;
-      const chat = {
-        id,
+  async function createConversation(contact, text) {
+    try {
+      // The API appends to an existing thread with the same name, or starts one.
+      const saved = await messagesApi.create({
         name: contact.name,
         role: contact.role,
         meta: contact.meta,
-        last: text,
-        time: "Now",
-        unread: 0,
-        files: [],
-        messages: [{ id: `${id}-0`, from: "me", text, time }],
-      };
-      setChats((list) => [chat, ...list]);
-      setActiveId(id);
+        isGroup: contact.role === "Group",
+        text,
+      });
+      setChats((list) =>
+        list.some((c) => c.id === saved.id)
+          ? list.map((c) => (c.id === saved.id ? saved : c))
+          : [saved, ...list]
+      );
+      setActiveId(saved.id);
+      setSentThisSession((n) => n + 1);
+      setMobileChatOpen(true);
+      setNotice(`Message sent to ${contact.name}.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't start that conversation."));
     }
-    setSentThisSession((n) => n + 1);
-    setMobileChatOpen(true);
-    setNotice(`Message sent to ${contact.name}.`);
   }
 
-  function deleteChat(chat) {
+  async function deleteChat(chat) {
     if (!window.confirm(`Delete the conversation with ${chat.name}?`)) return;
-    setChats((list) => list.filter((c) => c.id !== chat.id));
-    setActiveId((id) => (id === chat.id ? chats.find((c) => c.id !== chat.id)?.id ?? null : id));
-    setNotice("Conversation deleted.");
+    try {
+      await messagesApi.remove(chat.id);
+      setChats((list) => list.filter((c) => c.id !== chat.id));
+      setActiveId((id) => (id === chat.id ? chats.find((c) => c.id !== chat.id)?.id ?? null : id));
+      setNotice("Conversation deleted.");
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't delete that conversation."));
+    }
   }
 
   return (
@@ -636,7 +657,9 @@ export default function Messages() {
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {visible.map((c) => (
+            {loading && <LoadingState rows={5} label="Loading conversations…" />}
+            {!loading && error && <ErrorState description={error} onRetry={reload} />}
+            {!loading && !error && visible.map((c) => (
               <button
                 key={c.id}
                 onClick={() => openChat(c.id)}
@@ -669,7 +692,7 @@ export default function Messages() {
               </button>
             ))}
 
-            {visible.length === 0 && (
+            {!loading && !error && visible.length === 0 && (
               <div className="p-8 text-center">
                 <SearchX size={22} className="mx-auto text-gray-300 mb-2" />
                 <p className="text-sm text-gray-500">No conversations found.</p>
@@ -719,9 +742,14 @@ export default function Messages() {
                     <Video size={16} />
                   </button>
                   <ChatMenu
-                    onMarkUnread={() => {
+                    onMarkUnread={async () => {
                       setChats((list) => list.map((c) => (c.id === active.id ? { ...c, unread: 1 } : c)));
-                      setNotice("Marked as unread.");
+                      try {
+                        await messagesApi.update(active.id, { unread: 1 });
+                        setNotice("Marked as unread.");
+                      } catch (err) {
+                        setNotice(errorMessage(err, "Couldn't mark that as unread."));
+                      }
                     }}
                     onDelete={() => deleteChat(active)}
                   />

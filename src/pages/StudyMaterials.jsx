@@ -145,8 +145,9 @@ import {
   UploadCloud,
   ExternalLink,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, StatCard, Card, Notice, EmptyState, SecondaryButton, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass, StatButton } from "../components/ui";
-import { materials as seedMaterials } from "../data/mockData";
+import { PageHeader, PrimaryButton, SearchInput, Select, StatCard, Card, Notice, EmptyState, SecondaryButton, LoadingState, ErrorState, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass, StatButton } from "../components/ui";
+import { materialsApi, errorMessage } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const COURSES = [
   "Anatomy and Physiology",
@@ -196,21 +197,7 @@ const fmtStamp = (d) =>
     .toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })
     .toUpperCase()}`;
 
-const parseStamp = (value) => {
-  const d = new Date(value);
-  return isNaN(d) ? new Date() : d;
-};
-
 /* Seeded rows carry display strings; normalise them into real values. */
-const normalise = (list) =>
-  list.map((m) => ({
-    ...m,
-    uploadedAt: parseStamp(m.uploaded),
-    sizeLabel: m.size && m.size !== "-" ? m.size : "-",
-    url: m.url || "",
-    file: null,
-  }));
-
 /* ---------------- upload modal ---------------- */
 
 function UploadModal({ initial, onClose, onSave }) {
@@ -525,10 +512,16 @@ function RowMenu({ item, onEdit, onCopyLink, onDelete }) {
 /* ---------------- page ---------------- */
 
 export default function StudyMaterials() {
-  /*  Swap for your API when the backend is ready:
-        useEffect(() => { getMaterials().then((r) => setItems(normalise(r))); }, []);
-      Upload should POST FormData with the File object held in item.file.  */
-  const [items, setItems] = useState(() => normalise(seedMaterials));
+  /*  Metadata comes from GET /api/materials. The picked File stays in the
+      browser (object URL) — swap this for a multipart upload endpoint when
+      file storage is added, then POST the returned URL.  */
+  const {
+    data: items,
+    setData: setItems,
+    loading,
+    error,
+    reload,
+  } = useResource((signal) => materialsApi.list(undefined, { signal }), []);
 
   const [query, setQuery] = useState("");
   const [course, setCourse] = useState("all");
@@ -582,15 +575,28 @@ export default function StudyMaterials() {
     links: items.filter((m) => m.type === "Link").length,
   };
 
-  const nextId = () => Math.max(0, ...items.map((m) => m.id)) + 1;
+  const payload = (data) => ({
+    title: data.title,
+    course: data.course,
+    meta: data.meta,
+    topic: data.topic,
+    type: data.type,
+    ext: data.ext,
+    sizeLabel: data.sizeLabel,
+    url: data.url,
+    uploadedAt: new Date(data.uploadedAt ?? Date.now()).toISOString(),
+  });
 
-  function handleSave(data) {
+  async function handleSave(data) {
     if (data.id) {
-      setItems((list) => list.map((m) => (m.id === data.id ? { ...m, ...data } : m)));
-      setNotice(`"${data.title}" updated.`);
+      const saved = await materialsApi.update(data.id, payload(data));
+      // Keep the local object URL so a just-picked file still previews.
+      setItems((list) => list.map((m) => (m.id === saved.id ? { ...saved, file: data.file ?? null, url: data.url || saved.url } : m)));
+      setNotice(`"${saved.title}" updated.`);
     } else {
-      setItems((list) => [{ ...data, id: nextId() }, ...list]);
-      setNotice(`"${data.title}" uploaded.`);
+      const saved = await materialsApi.create(payload(data));
+      setItems((list) => [{ ...saved, file: data.file ?? null, url: data.url || saved.url }, ...list]);
+      setNotice(`"${saved.title}" uploaded.`);
     }
   }
 
@@ -610,11 +616,16 @@ export default function StudyMaterials() {
     setNotice(`Downloading "${item.title}".`);
   }
 
-  function handleDelete(item) {
+  async function handleDelete(item) {
     if (!window.confirm(`Delete "${item.title}"? Students will lose access.`)) return;
-    if (item.file && item.url) URL.revokeObjectURL(item.url);
-    setItems((list) => list.filter((m) => m.id !== item.id));
-    setNotice(`"${item.title}" deleted.`);
+    try {
+      await materialsApi.remove(item.id);
+      if (item.file && item.url) URL.revokeObjectURL(item.url);
+      setItems((list) => list.filter((m) => m.id !== item.id));
+      setNotice(`"${item.title}" deleted.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't delete that material."));
+    }
   }
 
   const SortHeader = ({ label, sortKey }) => (
@@ -689,6 +700,11 @@ export default function StudyMaterials() {
       <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
+        {loading ? (
+          <LoadingState rows={5} label="Loading study materials…" />
+        ) : error ? (
+          <ErrorState description={error} onRetry={reload} />
+        ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className={tableHeadRowClass}>
@@ -758,8 +774,9 @@ export default function StudyMaterials() {
             })}
           </tbody>
         </table>
+        )}
 
-        {visible.length === 0 && (
+        {!loading && !error && visible.length === 0 && (
           <EmptyState
             icon={items.length === 0 ? <Folder size={24} /> : <SearchX size={24} />}
             title={items.length === 0 ? "No materials yet" : "No materials match your filters"}

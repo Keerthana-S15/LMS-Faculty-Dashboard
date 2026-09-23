@@ -20,8 +20,9 @@ import {
   BookOpen,
   Users,
 } from "lucide-react";
-import { announcements, courses } from "../data/mockData";
 import { useFaculty } from "../context/useFaculty";
+import { announcementsApi, coursesApi } from "../api";
+import { useResource } from "../hooks/useResource";
 import { Avatar } from "./ui";
 
 /* Route → title shown in the bar; keeps the user oriented on small screens
@@ -98,6 +99,13 @@ export default function Topbar({ onMenuClick }) {
   const profileRef = useDismiss(profileOpen, () => setProfileOpen(false), profilePopoverRef);
   const notifRef = useDismiss(notifOpen, () => setNotifOpen(false));
   const profilePos = useAnchoredPosition(profileOpen, profileRef);
+
+  // Notifications and the quick counts come from the API.
+  const { data: announcements } = useResource(
+    (signal) => announcementsApi.list({ status: "Published" }, { signal }),
+    []
+  );
+  const { data: courses } = useResource((signal) => coursesApi.list(undefined, { signal }), []);
 
   const title = PAGE_TITLES[pathname] || "Dashboard";
   const unread = announcements.filter((a) => !readIds.includes(a.id));
@@ -202,8 +210,10 @@ export default function Topbar({ onMenuClick }) {
                           <span className={`block text-sm truncate ${isRead ? "text-gray-600" : "text-gray-900 font-medium"}`}>
                             {a.title}
                           </span>
-                          <span className="block text-xs text-gray-500 line-clamp-2">{a.desc}</span>
-                          <span className="block text-[11px] text-gray-400 mt-1">{a.date}</span>
+                          <span className="block text-xs text-gray-500 line-clamp-2">{a.body}</span>
+                          <span className="block text-[11px] text-gray-400 mt-1">
+                            {a.postedAt?.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                          </span>
                         </span>
                         {!isRead && <span className="w-2 h-2 rounded-full bg-brand-500 mt-1.5 shrink-0" />}
                       </Link>

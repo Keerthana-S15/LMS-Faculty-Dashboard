@@ -125,8 +125,9 @@ import {
   ClipboardList,
   Eye,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, Notice, Tabs, EmptyState, SecondaryButton, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass } from "../components/ui";
-import { assignments as seedAssignments } from "../data/mockData";
+import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, Notice, Tabs, EmptyState, SecondaryButton, LoadingState, ErrorState, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass } from "../components/ui";
+import { assignmentsApi, errorMessage } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const TABS = [
   { key: "all", label: "All Assignments" },
@@ -144,30 +145,6 @@ const COURSES = [
   "Child Health Nursing",
   "Mental Health Nursing",
 ];
-
-/* ------------------------------------------------------------------
-   The seeded rows carry due dates as "02 Jun 2025 11:59 PM" strings and
-   submissions as "18/32". Normalise both into real values once, and
-   spread the due dates around today so the countdowns stay meaningful.
--------------------------------------------------------------------*/
-const DUE_OFFSETS = [1, 3, 5, 8, 12];
-
-function normalise(list) {
-  return list.map((a, i) => {
-    const [got, total] = String(a.submitted).split("/").map((n) => Number(n) || 0);
-    const due = new Date();
-    due.setDate(due.getDate() + (DUE_OFFSETS[i] ?? 7));
-    due.setHours(23, 59, 0, 0);
-    return {
-      ...a,
-      dueAt: due,
-      submittedCount: got,
-      totalStudents: total || 30,
-      description: a.description || "",
-      maxMarks: a.maxMarks ?? 20,
-    };
-  });
-}
 
 const fmtDue = (d) =>
   `${d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} ${d
@@ -211,6 +188,7 @@ function AssignmentModal({ initial, onClose, onSave }) {
     ...initial,
   }));
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const onEsc = (e) => e.key === "Escape" && onClose();
@@ -223,7 +201,7 @@ function AssignmentModal({ initial, onClose, onSave }) {
     setErrors((err) => ({ ...err, [key]: "" }));
   };
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const next = {};
     if (!form.title.trim()) next.title = "Give the assignment a title.";
     if (!form.dueAt || isNaN(new Date(form.dueAt))) next.dueAt = "Pick a due date and time.";
@@ -231,15 +209,22 @@ function AssignmentModal({ initial, onClose, onSave }) {
     setErrors(next);
     if (Object.keys(next).length) return;
 
-    onSave({
-      ...form,
-      title: form.title.trim(),
-      dueAt: new Date(form.dueAt),
-      maxMarks: Number(form.maxMarks) || 0,
-      totalStudents: Number(form.totalStudents),
-      submittedCount: Number(form.submittedCount) || 0,
-    });
-    onClose();
+    setSaving(true);
+    try {
+      await onSave({
+        ...form,
+        title: form.title.trim(),
+        dueAt: new Date(form.dueAt),
+        maxMarks: Number(form.maxMarks) || 0,
+        totalStudents: Number(form.totalStudents),
+        submittedCount: Number(form.submittedCount) || 0,
+      });
+      onClose();
+    } catch (err) {
+      setErrors(err?.details || { title: errorMessage(err, "Couldn't save this assignment.") });
+    } finally {
+      setSaving(false);
+    }
   }
 
   const field = inputClass;
@@ -336,9 +321,10 @@ function AssignmentModal({ initial, onClose, onSave }) {
           </button>
           <button
             onClick={handleSubmit}
-            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors text-white text-sm font-medium"
+            disabled={saving}
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium"
           >
-            {isEdit ? "Save changes" : "Create assignment"}
+            {saving ? "Saving…" : isEdit ? "Save changes" : "Create assignment"}
           </button>
         </div>
       </div>
@@ -501,10 +487,14 @@ function RowMenu({ item, onEdit, onDuplicate, onPublish, onMarkReviewed, onDelet
 /* ---------------- page ---------------- */
 
 export default function Assignments() {
-  /*  Swap for your API when the backend is ready:
-        useEffect(() => { getAssignments().then((r) => setItems(normalise(r))); }, []);
-      and call POST / PUT / DELETE inside handleSave, handleDelete, etc.  */
-  const [items, setItems] = useState(() => normalise(seedAssignments));
+  // Rows come from GET /api/assignments (dueAt arrives as a Date).
+  const {
+    data: items,
+    setData: setItems,
+    loading,
+    error,
+    reload,
+  } = useResource((signal) => assignmentsApi.list(undefined, { signal }), []);
 
   const [tab, setTab] = useState("all");
   const [query, setQuery] = useState("");
@@ -554,41 +544,74 @@ export default function Assignments() {
     });
   }, [items, tab, query, course, sort]);
 
-  const nextId = () => Math.max(0, ...items.map((a) => a.id)) + 1;
+  const payload = (data) => ({
+    title: data.title,
+    course: data.course,
+    meta: data.meta,
+    description: data.description,
+    dueAt: new Date(data.dueAt).toISOString(),
+    maxMarks: Number(data.maxMarks) || 0,
+    totalStudents: Number(data.totalStudents) || 1,
+    submittedCount: Number(data.submittedCount) || 0,
+    status: data.status,
+  });
 
-  function handleSave(data) {
-    if (data.id) {
-      setItems((list) => list.map((a) => (a.id === data.id ? { ...a, ...data } : a)));
-      setNotice(`"${data.title}" updated.`);
-    } else {
-      setItems((list) => [{ ...data, id: nextId() }, ...list]);
-      setNotice(`"${data.title}" created.`);
+  const applySaved = (saved) =>
+    setItems((list) => (list.some((a) => a.id === saved.id)
+      ? list.map((a) => (a.id === saved.id ? saved : a))
+      : [saved, ...list]));
+
+  async function handleSave(data) {
+    const saved = data.id
+      ? await assignmentsApi.update(data.id, payload(data))
+      : await assignmentsApi.create(payload(data));
+    applySaved(saved);
+    setNotice(`"${saved.title}" ${data.id ? "updated" : "created"}.`);
+  }
+
+  async function handleDuplicate(item) {
+    try {
+      const saved = await assignmentsApi.create({
+        ...payload(item),
+        title: `${item.title} (Copy)`,
+        status: "Draft",
+        submittedCount: 0,
+      });
+      applySaved(saved);
+      setNotice("Assignment duplicated as a draft.");
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't duplicate that assignment."));
     }
   }
 
-  function handleDuplicate(item) {
-    setItems((list) => [
-      { ...item, id: nextId(), title: `${item.title} (Copy)`, status: "Draft", submittedCount: 0 },
-      ...list,
-    ]);
-    setNotice("Assignment duplicated as a draft.");
-  }
-
-  function handlePublish(item) {
+  async function handlePublish(item) {
     const next = item.status === "Draft" ? "Pending Review" : "Draft";
-    setItems((list) => list.map((a) => (a.id === item.id ? { ...a, status: next } : a)));
-    setNotice(next === "Draft" ? "Moved to draft." : "Published to students.");
+    try {
+      applySaved(await assignmentsApi.update(item.id, { status: next }));
+      setNotice(next === "Draft" ? "Moved to draft." : "Published to students.");
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't change that assignment."));
+    }
   }
 
-  function handleMarkReviewed(item) {
-    setItems((list) => list.map((a) => (a.id === item.id ? { ...a, status: "Reviewed" } : a)));
-    setNotice(`"${item.title}" marked as reviewed.`);
+  async function handleMarkReviewed(item) {
+    try {
+      applySaved(await assignmentsApi.update(item.id, { status: "Reviewed" }));
+      setNotice(`"${item.title}" marked as reviewed.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't update that assignment."));
+    }
   }
 
-  function handleDelete(item) {
+  async function handleDelete(item) {
     if (!window.confirm(`Delete "${item.title}"? This cannot be undone.`)) return;
-    setItems((list) => list.filter((a) => a.id !== item.id));
-    setNotice(`"${item.title}" deleted.`);
+    try {
+      await assignmentsApi.remove(item.id);
+      setItems((list) => list.filter((a) => a.id !== item.id));
+      setNotice(`"${item.title}" deleted.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't delete that assignment."));
+    }
   }
 
   const SortHeader = ({ label, sortKey }) => (
@@ -642,6 +665,11 @@ export default function Assignments() {
       <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
+        {loading ? (
+          <LoadingState rows={5} label="Loading assignments…" />
+        ) : error ? (
+          <ErrorState description={error} onRetry={reload} />
+        ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className={tableHeadRowClass}>
@@ -714,8 +742,9 @@ export default function Assignments() {
             })}
           </tbody>
         </table>
+        )}
 
-        {visible.length === 0 && (
+        {!loading && !error && visible.length === 0 && (
           <EmptyState
             icon={items.length === 0 ? <ClipboardList size={24} /> : <SearchX size={24} />}
             title={items.length === 0 ? "No assignments yet" : "No assignments match your filters"}

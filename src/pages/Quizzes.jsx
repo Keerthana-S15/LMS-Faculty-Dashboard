@@ -107,8 +107,9 @@ import {
   ArrowUpDown,
   SearchX,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, StatCard, Notice, EmptyState, SecondaryButton, StatButton, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass } from "../components/ui";
-import { quizzes as seedQuizzes } from "../data/mockData";
+import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, StatCard, Notice, EmptyState, SecondaryButton, StatButton, LoadingState, ErrorState, inputClass, labelClass, tableHeadRowClass, tableHeadCellClass, tableRowClass } from "../components/ui";
+import { quizzesApi, errorMessage } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const STATUSES = ["Published", "Scheduled", "Draft"];
 
@@ -155,6 +156,7 @@ function QuizModal({ initial, onClose, onSave }) {
     questionList: initial?.questionList ?? [],
   }));
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const onEsc = (e) => e.key === "Escape" && onClose();
@@ -183,7 +185,7 @@ function QuizModal({ initial, onClose, onSave }) {
   const questionCount = form.questionList.length;
   const totalMarks = form.questionList.reduce((s, q) => s + (Number(q.marks) || 0), 0);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const next = {};
     if (!form.title.trim()) next.title = "Give the quiz a title.";
     if (!form.durationMins || Number(form.durationMins) <= 0)
@@ -196,15 +198,24 @@ function QuizModal({ initial, onClose, onSave }) {
       return;
     }
 
-    onSave({
-      ...form,
-      title: form.title.trim(),
-      durationMins: Number(form.durationMins),
-      duration: `${Number(form.durationMins)} min`,
-      questions: questionCount,
-      marks: totalMarks,
-    });
-    onClose();
+    setSaving(true);
+    try {
+      await onSave({
+        ...form,
+        title: form.title.trim(),
+        durationMins: Number(form.durationMins),
+        duration: `${Number(form.durationMins)} min`,
+        questions: questionCount,
+        marks: totalMarks,
+      });
+      onClose();
+    } catch (err) {
+      const details = err?.details || { title: errorMessage(err, "Couldn't save this quiz.") };
+      setErrors(details);
+      if (details.status || details.questionList) setTab("questions");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const field = inputClass;
@@ -406,9 +417,10 @@ function QuizModal({ initial, onClose, onSave }) {
             </button>
             <button
               onClick={handleSubmit}
-              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors text-white text-sm font-medium"
+              disabled={saving}
+              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium"
             >
-              {isEdit ? "Save changes" : "Create quiz"}
+              {saving ? "Saving…" : isEdit ? "Save changes" : "Create quiz"}
             </button>
           </div>
         </div>
@@ -526,12 +538,14 @@ function RowMenu({ quiz, onDuplicate, onToggleStatus, onDelete }) {
 /* ---------------- page ---------------- */
 
 export default function Quizzes() {
-  /*  Swap for your API when the backend is ready:
-        useEffect(() => { getQuizzes().then(setQuizzes); }, []);
-      and call POST / PUT / DELETE inside handleSave, handleDelete, etc.  */
-  const [quizzes, setQuizzes] = useState(() =>
-    seedQuizzes.map((q) => ({ ...q, durationMins: minutesOf(q), questionList: [] }))
-  );
+  // Quizzes (with their question lists) come from GET /api/quizzes.
+  const {
+    data: quizzes,
+    setData: setQuizzes,
+    loading,
+    error,
+    reload,
+  } = useResource((signal) => quizzesApi.list(undefined, { signal }), []);
 
   const [query, setQuery] = useState("");
   const [course, setCourse] = useState("all");
@@ -583,40 +597,70 @@ export default function Quizzes() {
     drafts: quizzes.filter((q) => q.status === "Draft").length,
   };
 
-  const nextId = () => Math.max(0, ...quizzes.map((q) => q.id)) + 1;
+  const payload = (data) => ({
+    title: data.title,
+    course: data.course,
+    meta: data.meta,
+    durationMins: Number(data.durationMins) || 0,
+    status: data.status,
+    questionList: (data.questionList ?? []).map((q) => ({
+      text: q.text,
+      options: q.options,
+      correct: Number(q.correct) || 0,
+      marks: Number(q.marks) || 0,
+    })),
+  });
 
-  function handleSave(data) {
-    if (data.id) {
-      setQuizzes((list) => list.map((q) => (q.id === data.id ? { ...q, ...data } : q)));
-      setNotice(`"${data.title}" updated.`);
-    } else {
-      setQuizzes((list) => [{ ...data, id: nextId() }, ...list]);
-      setNotice(`"${data.title}" created.`);
+  const applySaved = (saved) =>
+    setQuizzes((list) => (list.some((q) => q.id === saved.id)
+      ? list.map((q) => (q.id === saved.id ? saved : q))
+      : [saved, ...list]));
+
+  async function handleSave(data) {
+    const saved = data.id
+      ? await quizzesApi.update(data.id, payload(data))
+      : await quizzesApi.create(payload(data));
+    applySaved(saved);
+    setNotice(`"${saved.title}" ${data.id ? "updated" : "created"}.`);
+  }
+
+  async function handleDuplicate(quiz) {
+    try {
+      const saved = await quizzesApi.create({
+        ...payload(quiz),
+        title: `${quiz.title} (Copy)`,
+        status: "Draft",
+      });
+      applySaved(saved);
+      setNotice("Quiz duplicated as a draft.");
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't duplicate that quiz."));
     }
   }
 
-  function handleDuplicate(quiz) {
-    setQuizzes((list) => [
-      { ...quiz, id: nextId(), title: `${quiz.title} (Copy)`, status: "Draft" },
-      ...list,
-    ]);
-    setNotice("Quiz duplicated as a draft.");
-  }
-
-  function handleToggleStatus(quiz) {
+  async function handleToggleStatus(quiz) {
     const next = quiz.status === "Published" ? "Draft" : "Published";
     if (next === "Published" && (quiz.questionList?.length ?? 0) === 0) {
       setNotice("Add at least one question before publishing.");
       return;
     }
-    setQuizzes((list) => list.map((q) => (q.id === quiz.id ? { ...q, status: next } : q)));
-    setNotice(next === "Published" ? "Quiz published." : "Quiz moved to draft.");
+    try {
+      applySaved(await quizzesApi.update(quiz.id, { status: next }));
+      setNotice(next === "Published" ? "Quiz published." : "Quiz moved to draft.");
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't change that quiz."));
+    }
   }
 
-  function handleDelete(quiz) {
+  async function handleDelete(quiz) {
     if (!window.confirm(`Delete "${quiz.title}"? This cannot be undone.`)) return;
-    setQuizzes((list) => list.filter((q) => q.id !== quiz.id));
-    setNotice(`"${quiz.title}" deleted.`);
+    try {
+      await quizzesApi.remove(quiz.id);
+      setQuizzes((list) => list.filter((q) => q.id !== quiz.id));
+      setNotice(`"${quiz.title}" deleted.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't delete that quiz."));
+    }
   }
 
   const SortHeader = ({ label, sortKey, className = "" }) => (
@@ -683,6 +727,11 @@ export default function Quizzes() {
       <Notice message={notice} onClose={() => setNotice("")} />
 
       <Card className="overflow-x-auto">
+        {loading ? (
+          <LoadingState rows={5} label="Loading quizzes…" />
+        ) : error ? (
+          <ErrorState description={error} onRetry={reload} />
+        ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className={tableHeadRowClass}>
@@ -729,8 +778,9 @@ export default function Quizzes() {
             ))}
           </tbody>
         </table>
+        )}
 
-        {visible.length === 0 && (
+        {!loading && !error && visible.length === 0 && (
           <EmptyState
             icon={quizzes.length === 0 ? <ClipboardList size={24} /> : <SearchX size={24} />}
             title={quizzes.length === 0 ? "No quizzes yet" : "No quizzes match your filters"}

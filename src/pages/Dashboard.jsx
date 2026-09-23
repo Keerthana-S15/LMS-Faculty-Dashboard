@@ -188,37 +188,13 @@ import {
   Dot,
   CheckCheck,
 } from "lucide-react";
-import { StatCard, Card, Badge, ProgressBar, SectionHeader, Avatar } from "../components/ui";
-import {
-  courses,
-  announcements as seedAnnouncements,
-  pendingAssignments,
-} from "../data/mockData";
+import { StatCard, Card, Badge, ProgressBar, SectionHeader, Avatar, LoadingState, ErrorState } from "../components/ui";
 import { useFaculty } from "../context/useFaculty";
+import { coursesApi, assignmentsApi, announcementsApi, liveClassesApi } from "../api";
+import { useResource } from "../hooks/useResource";
 
-/* ------------------------------------------------------------------
-   Schedule data built around today's date so the calendar, the
-   countdowns and the "Live now" highlight all behave correctly.
-   Replace SCHEDULE with your API result when the backend is ready.
--------------------------------------------------------------------*/
-const at = (dayOffset, hour, minute = 0) => {
-  const d = new Date();
-  d.setDate(d.getDate() + dayOffset);
-  d.setHours(hour, minute, 0, 0);
-  return d;
-};
-
-const SCHEDULE = [
-  { id: 1, title: "Anatomy and Physiology", meta: "Year I - Batch A", room: "Room 101", startAt: at(0, 9), endAt: at(0, 10), tone: "purple" },
-  { id: 2, title: "Fundamentals of Nursing", meta: "Year I - Batch B", room: "Room 102", startAt: at(0, 11, 30), endAt: at(0, 12, 30), tone: "green" },
-  { id: 3, title: "Pharmacology", meta: "Year II - Batch A", room: "Room 103", startAt: at(0, 14), endAt: at(0, 15), tone: "orange" },
-  { id: 4, title: "Community Health Nursing", meta: "Year III - Batch B", room: "Room 104", startAt: at(0, 15, 30), endAt: at(0, 16, 30), tone: "blue" },
-  { id: 5, title: "Medical-Surgical Nursing", meta: "Year II - Batch A", room: "Room 105", startAt: at(1, 9, 30), endAt: at(1, 10, 30), tone: "purple" },
-  { id: 6, title: "Child Health Nursing", meta: "Year III - Batch A", room: "Room 106", startAt: at(1, 13), endAt: at(1, 14), tone: "green" },
-  { id: 7, title: "Nutrition and Dietetics", meta: "Year II - Batch B", room: "Room 107", startAt: at(2, 10), endAt: at(2, 11), tone: "orange" },
-  { id: 8, title: "Mental Health Nursing", meta: "Year IV - Batch A", room: "Room 108", startAt: at(3, 11), endAt: at(3, 12), tone: "blue" },
-  { id: 9, title: "Anatomy and Physiology", meta: "Year I - Batch B", room: "Room 101", startAt: at(-1, 9), endAt: at(-1, 10), tone: "purple" },
-];
+/* Tone cycles per class so the schedule keeps its colour variety. */
+const TONES = ["purple", "green", "orange", "blue"];
 
 const toneClass = {
   purple: "bg-brand-100 text-brand-700",
@@ -337,23 +313,48 @@ export default function Dashboard() {
   const { profile: faculty, photo } = useFaculty();
   const [now, setNow] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [announcements, setAnnouncements] = useState(() =>
-    seedAnnouncements.map((a) => ({ ...a, read: false }))
-  );
+  // Everything on this page is read from the API.
+  const { data: courses, loading: coursesLoading, error: coursesError, reload: reloadCourses } =
+    useResource((signal) => coursesApi.list(undefined, { signal }), []);
+  const { data: schedule, loading: scheduleLoading, error: scheduleError, reload: reloadSchedule } =
+    useResource((signal) => liveClassesApi.list(undefined, { signal }), []);
+  const { data: pendingAssignments, loading: assignmentsLoading, error: assignmentsError, reload: reloadAssignments } =
+    useResource(
+      (signal) => assignmentsApi.list({ status: "Pending Review" }, { signal }),
+      []
+    );
+  const { data: announcementFeed, loading: announcementsLoading, error: announcementsError, reload: reloadAnnouncements } =
+    useResource((signal) => announcementsApi.list({ status: "Published" }, { signal }), []);
+
+  // "Read" is a per-session flag on top of the fetched announcements.
+  const [readIds, setReadIds] = useState([]);
+  const announcements = announcementFeed.map((a) => ({ ...a, read: readIds.includes(a.id) }));
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(id);
   }, []);
 
-  const eventsByDay = (day) => SCHEDULE.filter((s) => sameDay(s.startAt, day));
+  // Live classes carry a tone so the schedule keeps its colour variety.
+  const events = useMemo(
+    () => schedule.map((c, i) => ({
+      ...c,
+      meta: [c.year, c.batch].filter(Boolean).join(" - "),
+      tone: TONES[i % TONES.length],
+    })),
+    [schedule]
+  );
+
+  const eventsByDay = (day) => events.filter((s) => sameDay(s.startAt, day));
 
   const dayEvents = useMemo(
     () => eventsByDay(selectedDate).sort((a, b) => a.startAt - b.startAt),
-    [selectedDate]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events, selectedDate]
   );
 
-  const todayEvents = useMemo(() => eventsByDay(now), [now]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const todayEvents = useMemo(() => eventsByDay(now), [events, now]);
   const unreadCount = announcements.filter((a) => !a.read).length;
   const activeCourses = courses.filter((c) => c.status === "Active");
   const totalStudents = courses.reduce((sum, c) => sum + (Number(c.students) || 0), 0);
@@ -412,7 +413,11 @@ export default function Dashboard() {
             }
           />
           <div className="space-y-4">
-            {courses.slice(0, 4).map((c) => (
+            {coursesLoading && <LoadingState rows={3} label="Loading courses…" />}
+            {!coursesLoading && coursesError && (
+              <ErrorState description={coursesError} onRetry={reloadCourses} />
+            )}
+            {!coursesLoading && !coursesError && courses.slice(0, 4).map((c) => (
               <Link
                 key={c.id}
                 to="/courses"
@@ -462,12 +467,16 @@ export default function Dashboard() {
           />
 
           <div className="space-y-4">
-            {dayEvents.length === 0 && (
+            {scheduleLoading && <LoadingState rows={3} label="Loading schedule…" />}
+            {!scheduleLoading && scheduleError && (
+              <ErrorState description={scheduleError} onRetry={reloadSchedule} />
+            )}
+            {!scheduleLoading && !scheduleError && dayEvents.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-6">
                 No classes scheduled for this day.
               </p>
             )}
-            {dayEvents.map((s) => {
+            {!scheduleLoading && !scheduleError && dayEvents.map((s) => {
               const live = now >= s.startAt && now <= s.endAt;
               const done = now > s.endAt;
               return (
@@ -528,10 +537,16 @@ export default function Dashboard() {
             }
           />
           <div className="space-y-4">
-            {pendingAssignments.map((a) => {
-              const left = daysUntil(a.due, now);
-              const [got, total] = String(a.submitted).split("/").map(Number);
-              const pct = total ? Math.round((got / total) * 100) : 0;
+            {assignmentsLoading && <LoadingState rows={3} label="Loading assignments…" />}
+            {!assignmentsLoading && assignmentsError && (
+              <ErrorState description={assignmentsError} onRetry={reloadAssignments} />
+            )}
+            {!assignmentsLoading && !assignmentsError && pendingAssignments.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-6">Nothing waiting for review.</p>
+            )}
+            {!assignmentsLoading && !assignmentsError && pendingAssignments.map((a) => {
+              const left = daysUntil(a.dueAt, now);
+              const pct = a.totalStudents ? Math.round((a.submittedCount / a.totalStudents) * 100) : 0;
               const urgent = left !== null && left <= 2;
               return (
                 <Link
@@ -547,13 +562,15 @@ export default function Dashboard() {
                     <p className="text-xs text-gray-500">{a.meta}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <ProgressBar value={pct} className="flex-1" />
-                      <span className="text-[11px] text-gray-400 shrink-0">{a.submitted}</span>
+                      <span className="text-[11px] text-gray-400 shrink-0">
+                        {a.submittedCount}/{a.totalStudents}
+                      </span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-[11px] text-gray-400">Due</p>
                     <p className={`text-xs font-medium ${urgent ? "text-rose-500" : "text-gray-600"}`}>
-                      {a.due}
+                      {a.dueAt?.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                     </p>
                     {left !== null && (
                       <p className="text-[10px] text-gray-400">
@@ -588,7 +605,7 @@ export default function Dashboard() {
             </h2>
             {unreadCount > 0 ? (
               <button
-                onClick={() => setAnnouncements((list) => list.map((a) => ({ ...a, read: true })))}
+                onClick={() => setReadIds(announcementFeed.map((a) => a.id))}
                 className="flex items-center gap-1.5 text-sm text-brand-600 font-medium hover:text-brand-700 hover:underline"
               >
                 <CheckCheck size={15} /> Mark all read
@@ -600,14 +617,14 @@ export default function Dashboard() {
             )}
           </div>
           <div className="divide-y divide-gray-100">
-            {announcements.map((a) => (
+            {announcementsLoading && <LoadingState rows={3} label="Loading announcements…" />}
+            {!announcementsLoading && announcementsError && (
+              <ErrorState description={announcementsError} onRetry={reloadAnnouncements} />
+            )}
+            {!announcementsLoading && !announcementsError && announcements.map((a) => (
               <button
                 key={a.id}
-                onClick={() =>
-                  setAnnouncements((list) =>
-                    list.map((x) => (x.id === a.id ? { ...x, read: true } : x))
-                  )
-                }
+                onClick={() => setReadIds((ids) => (ids.includes(a.id) ? ids : [...ids, a.id]))}
                 className="w-full flex items-start gap-3 py-3 text-left hover:bg-gray-50 transition-colors px-2 -mx-2 first:rounded-t-xl last:rounded-b-xl"
               >
                 <div
@@ -626,9 +643,11 @@ export default function Dashboard() {
                     {a.title}
                     {!a.read && <Dot size={18} className="text-rose-500 -ml-1" />}
                   </p>
-                  <p className="text-xs text-gray-500">{a.desc}</p>
+                  <p className="text-xs text-gray-500">{a.body}</p>
                 </div>
-                <p className="text-xs text-gray-400 shrink-0">{a.date}</p>
+                <p className="text-xs text-gray-400 shrink-0">
+                  {a.postedAt?.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                </p>
               </button>
             ))}
           </div>

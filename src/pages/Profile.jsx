@@ -220,9 +220,11 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
-import { PageHeader, Card, Badge, Notice, Tabs, inputClass, labelClass, PrimaryButton, SecondaryButton, OutlineButton, Avatar } from "../components/ui";
-import { courses } from "../data/mockData";
+import { PageHeader, Card, Badge, Notice, Tabs, inputClass, labelClass, PrimaryButton, SecondaryButton, OutlineButton, Avatar, LoadingState, ErrorState } from "../components/ui";
 import { useFaculty } from "../context/useFaculty";
+import { coursesApi } from "../api";
+import { useResource } from "../hooks/useResource";
+import { errorMessage } from "../api";
 
 const TABS = ["Overview", "Personal Information", "Academic Information", "Preferences", "Security"];
 
@@ -260,14 +262,35 @@ function Field({ name, labelText, type = "text", value, onChange, disabled, erro
 export default function Profile() {
   // Profile + photo live in FacultyContext so the topbar, sidebar and
   // dashboard stay in sync with whatever is saved here.
-  const { profile, photo, updateProfile: setProfile, updatePhoto: setPhoto } = useFaculty();
+  const {
+    profile,
+    photo,
+    loading,
+    error: loadError,
+    updateProfile,
+    updatePhoto: setPhoto,
+    reload,
+  } = useFaculty();
   const [form, setForm] = useState(() => ({ ...profile }));
+  const [saving, setSaving] = useState(false);
+
+  // Keep the edit form in step with the record once it arrives from the API
+  // (and after a save), except while the user is mid-edit.
+  useEffect(() => {
+    if (!editingRef.current) setForm({ ...profile });
+  }, [profile]);
   const [tab, setTab] = useState(TABS[0]);
   const [editing, setEditing] = useState(false);
+  const editingRef = useRef(false);
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
   const [notice, setNotice] = useState("");
   const [errors, setErrors] = useState({});
   const photoRef = useRef(null);
+
+  // Lets the sync effect below know not to clobber a form being edited.
+  useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
 
   useEffect(() => {
     if (!notice) return;
@@ -285,7 +308,8 @@ export default function Profile() {
     setErrors((err) => ({ ...err, [key]: "" }));
   };
 
-  // Quick Information reads from the course list instead of fixed numbers.
+  // Quick Information reads from the live course list instead of fixed numbers.
+  const { data: courses } = useResource((signal) => coursesApi.list(undefined, { signal }), []);
   const activeCourses = courses.filter((c) => c.status === "Active");
   const quickInfo = [
     { icon: BookOpen, label: "Total Courses", value: activeCourses.length, tint: "bg-brand-100 text-brand-600" },
@@ -299,7 +323,7 @@ export default function Profile() {
     { icon: FolderOpen, label: "Published Materials", value: profile.stats.publishedMaterials, tint: "bg-amber-100 text-amber-600" },
   ];
 
-  function handleSave() {
+  async function handleSave() {
     const next = {};
     if (!form.name.trim()) next.name = "Name can't be empty.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = "Enter a valid email address.";
@@ -308,9 +332,18 @@ export default function Profile() {
     setErrors(next);
     if (Object.keys(next).length) return;
 
-    setProfile(form);
-    setEditing(false);
-    setNotice("Profile updated.");
+    setSaving(true);
+    try {
+      await updateProfile(form);
+      setEditing(false);
+      setNotice("Profile updated.");
+    } catch (err) {
+      // Field-level messages from the API land next to the inputs.
+      if (err?.details) setErrors(err.details);
+      setNotice(errorMessage(err, "Couldn't save your profile."));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleDiscard() {
@@ -364,8 +397,8 @@ export default function Profile() {
               <SecondaryButton icon={RotateCcw} onClick={handleDiscard}>
                 Discard
               </SecondaryButton>
-              <PrimaryButton icon={Save} onClick={handleSave} disabled={!dirty}>
-                Save changes
+              <PrimaryButton icon={Save} onClick={handleSave} disabled={!dirty || saving}>
+                {saving ? "Saving…" : "Save changes"}
               </PrimaryButton>
             </div>
           ) : (
@@ -381,7 +414,18 @@ export default function Profile() {
 
       <Notice message={notice} onClose={() => setNotice("")} />
 
-      <Card className="p-6 mb-6">
+      {loadError && (
+        <Card className="mb-6">
+          <ErrorState description={loadError} onRetry={reload} />
+        </Card>
+      )}
+
+      {loading && !profile.name ? (
+        <Card className="mb-6">
+          <LoadingState rows={3} label="Loading your profile…" />
+        </Card>
+      ) : (
+        <Card className="p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex flex-col items-center shrink-0">
             <Avatar src={photo} name={profile.name} size={112} className="ring-4 ring-brand-50 shadow-card" />
@@ -433,8 +477,9 @@ export default function Profile() {
               </div>
             ))}
           </div>
-        </div>
-      </Card>
+          </div>
+        </Card>
+      )}
 
       <Tabs tabs={TABS} value={tab} onChange={setTab} className="mb-6" />
 

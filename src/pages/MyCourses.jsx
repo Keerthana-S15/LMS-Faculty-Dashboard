@@ -86,8 +86,9 @@ import {
   BookOpen,
   ImageOff,
 } from "lucide-react";
-import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, Notice, EmptyState, inputClass, labelClass } from "../components/ui";
-import { courses as seedCourses } from "../data/mockData";
+import { PageHeader, PrimaryButton, SearchInput, Select, Badge, Card, Notice, EmptyState, LoadingState, ErrorState, inputClass, labelClass } from "../components/ui";
+import { coursesApi, errorMessage } from "../api";
+import { useResource } from "../hooks/useResource";
 
 const SEMESTERS = [
   "Semester I",
@@ -157,6 +158,9 @@ function CourseModal({ initial, onClose, onSave }) {
           "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=400&q=80",
       });
       onClose();
+    } catch (err) {
+      // Field messages from the API render under the matching inputs.
+      setErrors(err?.details || { title: errorMessage(err, "Couldn't save this course.") });
     } finally {
       setSaving(false);
     }
@@ -354,10 +358,14 @@ function CardMenu({ onEdit, onDuplicate, onDelete }) {
 /* ---------------- page ---------------- */
 
 export default function MyCourses() {
-  /*  Swap this for your API when the backend is ready:
-        useEffect(() => { getCourses().then(setCourses); }, []);
-      and make handleSave / handleDelete call POST / PUT / DELETE.  */
-  const [courses, setCourses] = useState(seedCourses);
+  // Courses come from GET /api/courses; the handlers below POST/PUT/DELETE.
+  const {
+    data: courses,
+    setData: setCourses,
+    loading,
+    error,
+    reload,
+  } = useResource((signal) => coursesApi.list(undefined, { signal }), []);
 
   const [query, setQuery] = useState("");
   const [semester, setSemester] = useState("All Semesters");
@@ -388,30 +396,51 @@ export default function MyCourses() {
     });
   }, [courses, query, semester]);
 
-  function handleSave(data) {
+  const payload = (data) => ({
+    title: data.title,
+    program: data.program,
+    semester: data.semester,
+    students: Number(data.students) || 0,
+    status: data.status,
+    image: data.image,
+  });
+
+  async function handleSave(data) {
     if (data.id) {
-      setCourses((list) => list.map((c) => (c.id === data.id ? { ...c, ...data } : c)));
-      setNotice(`"${data.title}" updated.`);
+      const saved = await coursesApi.update(data.id, payload(data));
+      setCourses((list) => list.map((c) => (c.id === saved.id ? saved : c)));
+      setNotice(`"${saved.title}" updated.`);
     } else {
-      const id = Math.max(0, ...courses.map((c) => c.id)) + 1;
-      setCourses((list) => [{ ...data, id }, ...list]);
-      setNotice(`"${data.title}" created.`);
+      const saved = await coursesApi.create(payload(data));
+      setCourses((list) => [saved, ...list]);
+      setNotice(`"${saved.title}" created.`);
     }
   }
 
-  function handleDuplicate(course) {
-    const id = Math.max(0, ...courses.map((c) => c.id)) + 1;
-    setCourses((list) => [
-      { ...course, id, title: `${course.title} (Copy)`, status: "Draft", students: 0 },
-      ...list,
-    ]);
-    setNotice("Course duplicated as a draft.");
+  async function handleDuplicate(course) {
+    try {
+      const saved = await coursesApi.create({
+        ...payload(course),
+        title: `${course.title} (Copy)`,
+        status: "Draft",
+        students: 0,
+      });
+      setCourses((list) => [saved, ...list]);
+      setNotice("Course duplicated as a draft.");
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't duplicate that course."));
+    }
   }
 
-  function handleDelete(course) {
+  async function handleDelete(course) {
     if (!window.confirm(`Delete "${course.title}"? This cannot be undone.`)) return;
-    setCourses((list) => list.filter((c) => c.id !== course.id));
-    setNotice(`"${course.title}" deleted.`);
+    try {
+      await coursesApi.remove(course.id);
+      setCourses((list) => list.filter((c) => c.id !== course.id));
+      setNotice(`"${course.title}" deleted.`);
+    } catch (err) {
+      setNotice(errorMessage(err, "Couldn't delete that course."));
+    }
   }
 
   return (
@@ -442,7 +471,15 @@ export default function MyCourses() {
 
       <Notice message={notice} onClose={() => setNotice("")} />
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <Card>
+          <LoadingState rows={4} label="Loading courses…" />
+        </Card>
+      ) : error ? (
+        <Card>
+          <ErrorState description={error} onRetry={reload} />
+        </Card>
+      ) : filtered.length === 0 ? (
         <Card>
           <EmptyState
             icon={courses.length === 0 ? <BookOpen size={24} /> : <ImageOff size={24} />}
